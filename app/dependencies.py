@@ -22,8 +22,12 @@ file_handler.setLevel(logging.DEBUG)
 file_handler.setFormatter(formatter)
 multi_logger.addHandler(file_handler)
 
-def logit(message: str, level: int = {10, 20, 30, 40}, to_file: bool = False):
+def logit(message: str, level: int, to_file: bool = False):
+    levels = (10, 20, 30, 40)
+    if level not in levels:
+        raise ValueError("invalid log level")
     if to_file:
         multi_logger.log(level, message)
     else:
         console_logger.log(level, message)
+
