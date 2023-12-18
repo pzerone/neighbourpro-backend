@@ -7,6 +7,10 @@ name = "pypi"
 fastapi = "*"
 uvicorn = "*"
 python-multipart = "*"
+python-jose = {extras = ["cryptography"], version = "*"}
+passlib = {extras = ["bcrypt"], version = "*"}
+tortoise-orm = {extras = ["asyncpg"], version = "*"}
+python-dotenv = "*"
 
 [dev-packages]
 
