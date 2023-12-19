@@ -38,7 +38,7 @@ def create_access_token(subject: TokenData, expires_delta: int = None) -> str:
         expires_delta = datetime.utcnow() + expires_delta
     else:
         expires_delta = datetime.utcnow() + timedelta(
-            minutes=ACCESS_TOKEN_EXPIRE_MINUTES
+            minutes=float(ACCESS_TOKEN_EXPIRE_MINUTES)
         )
 
     to_encode = {"exp": expires_delta, "sub": str(subject)}
@@ -51,7 +51,7 @@ def create_refresh_token(subject: TokenData, expires_delta: int = None) -> str:
         expires_delta = datetime.utcnow() + expires_delta
     else:
         expires_delta = datetime.utcnow() + timedelta(
-            minutes=REFRESH_TOKEN_EXPIRE_MINUTES
+            minutes=float(REFRESH_TOKEN_EXPIRE_MINUTES)
         )
 
     to_encode = {
