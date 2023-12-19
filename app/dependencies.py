@@ -1,15 +1,14 @@
 from passlib.context import CryptContext
 from datetime import datetime, timedelta
-from typing import Union, Any
 from pydantic import BaseModel
-from jose import jwt, JWTError
+from jose import jwt
 import os
 
 SECRET_KEY = os.environ["JWT_SECRET"]
 JWT_REFRESH_SECRET_KEY = os.environ["JWT_REFRESH_SECRET"]
 ALGORITHM = os.environ["JWT_ALGORITHM"]
-ACCESS_TOKEN_EXPIRE_MINUTES = 60  # 1 hour
-REFRESH_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7  # 7 days
+ACCESS_TOKEN_EXPIRE_MINUTES = os.environ["JWT_AT_EXPIRE_MINUTES"]
+REFRESH_TOKEN_EXPIRE_MINUTES = os.environ["JWT_RT_EXPIRE_MINUTES"]
 
 
 class Token(BaseModel):
