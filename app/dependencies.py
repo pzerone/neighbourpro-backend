@@ -1,3 +1,10 @@
+"""
+Title: Global dependencies
+File: /dependencies.py
+Description: This file contains the global dependencies for the app.
+Author: github.com/pzerone
+"""
+
 from passlib.context import CryptContext
 from datetime import datetime, timedelta
 from pydantic import BaseModel

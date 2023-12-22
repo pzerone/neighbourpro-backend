@@ -1,12 +1,15 @@
+"""
+Title: Models
+File: /database/models.py
+Description: This file contains the tortoise ORM models for the database.
+Author: github.com/pzerone
+"""
+
 from tortoise import fields, models
 from tortoise.contrib.pydantic import pydantic_model_creator
 
 
 class Users(models.Model):
-    """
-    The User model - A user can be also be a worker. signified by is_worker flag
-    """
-
     #: Auto generated
     id = fields.IntField(pk=True)
     #: Should be a uuid and internal only. not for front end.

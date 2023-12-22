@@ -1,3 +1,10 @@
+"""
+Title: Users router
+File: /routers/users.py
+Description: This file contains the FastAPI router for user views.
+Author: github.com/pzerone
+"""
+
 from fastapi import APIRouter, HTTPException, Depends
 from fastapi.responses import JSONResponse
 from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer

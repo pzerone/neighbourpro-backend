@@ -1,3 +1,10 @@
+"""
+Title: NeighbourPro backend API
+File: /main.py
+Description: This file contains the main FastAPI app of NeighbourPro backend.
+Author: github.com/pzerone
+"""
+
 import os
 import dotenv
 
@@ -33,7 +40,7 @@ async def root():
 register_tortoise(
     app,
     db_url=db_url,
-    modules={"models": ["database.models"]},
+    modules={"models": ["database.models", "aerich.models"]},
     generate_schemas=True,
     add_exception_handlers=True,
 )
