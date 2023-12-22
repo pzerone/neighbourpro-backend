@@ -35,20 +35,24 @@ def verify_password(password: str, hashed_pass: str) -> bool:
 
 def create_access_token(subject: TokenData, expires_delta: int = None) -> str:
     if expires_delta is not None:
-        expires_delta = datetime.utcnow() + expires_delta
+        expires_delta = datetime.utcnow() + timedelta(minutes=float(expires_delta))
     else:
         expires_delta = datetime.utcnow() + timedelta(
             minutes=float(ACCESS_TOKEN_EXPIRE_MINUTES)
         )
 
-    to_encode = {"exp": expires_delta, "sub": str(subject)}
+    to_encode = {
+        "exp": expires_delta,
+        "username": subject.username,
+        "email": subject.email,
+    }
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, ALGORITHM)
     return encoded_jwt
 
 
 def create_refresh_token(subject: TokenData, expires_delta: int = None) -> str:
     if expires_delta is not None:
-        expires_delta = datetime.utcnow() + expires_delta
+        expires_delta = datetime.utcnow() + timedelta(minutes=float(expires_delta))
     else:
         expires_delta = datetime.utcnow() + timedelta(
             minutes=float(REFRESH_TOKEN_EXPIRE_MINUTES)
@@ -61,3 +65,11 @@ def create_refresh_token(subject: TokenData, expires_delta: int = None) -> str:
     }
     encoded_jwt = jwt.encode(to_encode, JWT_REFRESH_SECRET_KEY, ALGORITHM)
     return encoded_jwt
+
+
+def decode_token(token: str) -> dict | None:
+    try:
+        decoded_token = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        return decoded_token
+    except:
+        return None
