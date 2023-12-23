@@ -4,18 +4,17 @@ File: /main.py
 Description: This file contains the main FastAPI app of NeighbourPro backend.
 Author: github.com/pzerone
 """
-
 import os
 import dotenv
 
 dotenv.load_dotenv()
+DB_URL = os.getenv("DB_URL")
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from tortoise.contrib.fastapi import register_tortoise
 
 from routers import users
-
 
 app = FastAPI()
 origins = ["*"]
@@ -29,8 +28,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-db_url = os.getenv("DB_URL")
-
 
 @app.get("/")
 async def root():
@@ -39,8 +36,8 @@ async def root():
 
 register_tortoise(
     app,
-    db_url=db_url,
-    modules={"models": ["database.models", "aerich.models"]},
-    generate_schemas=True,
+    db_url=DB_URL,
+    modules={"models": ["database.models"]},
     add_exception_handlers=True,
+    # generate_schemas=True,
 )

@@ -22,6 +22,15 @@ class Users(models.Model):
     phone_number = fields.CharField(max_length=20, null=False)
     password_hash = fields.CharField(max_length=128, null=False)
 
+    House_name = fields.CharField(max_length=50, null=True)
+    Street = fields.CharField(max_length=50, null=True)
+    City = fields.IntField(max_length=6, null=True)
+    State = fields.CharField(max_length=50, null=True)
+    Pincode = fields.CharField(max_length=50, null=True)
+
+    Latitude = fields.DecimalField(max_digits=9, decimal_places=6, null=True)
+    Longitude = fields.DecimalField(max_digits=9, decimal_places=6, null=True)
+
     created_at = fields.DatetimeField(auto_now_add=True)
     modified_at = fields.DatetimeField(auto_now=True)
 

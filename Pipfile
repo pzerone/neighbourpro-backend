@@ -11,6 +11,7 @@ python-jose = {extras = ["cryptography"], version = "*"}
 passlib = {extras = ["bcrypt"], version = "*"}
 tortoise-orm = {extras = ["asyncpg"], version = "*"}
 python-dotenv = "*"
+aerich = "*"
 
 [dev-packages]
 
