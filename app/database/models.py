@@ -41,7 +41,7 @@ class Users(models.Model):
 
     class PydanticMeta:
         computed = ["full_name"]
-        exclude = ["created_at", "modified_at"]
+        exclude = ["created_at", "modified_at", "House_name", "Street", "City", "State", "Pincode", "Latitude", "Longitude"]
 
 
 User_Pydantic = pydantic_model_creator(Users, name="User")
