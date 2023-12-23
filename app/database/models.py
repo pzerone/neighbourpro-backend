@@ -24,9 +24,9 @@ class Users(models.Model):
 
     House_name = fields.CharField(max_length=50, null=True)
     Street = fields.CharField(max_length=50, null=True)
-    City = fields.IntField(max_length=6, null=True)
+    City = fields.CharField(max_length=50, null=True)
     State = fields.CharField(max_length=50, null=True)
-    Pincode = fields.CharField(max_length=50, null=True)
+    Pincode = fields.IntField(max_length=6, null=True)
 
     Latitude = fields.DecimalField(max_digits=9, decimal_places=6, null=True)
     Longitude = fields.DecimalField(max_digits=9, decimal_places=6, null=True)

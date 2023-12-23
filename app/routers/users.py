@@ -10,6 +10,7 @@ from fastapi.responses import JSONResponse
 from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
 from database.models import Users, UserIn_Pydantic
 from tortoise.expressions import Q
+from pydantic import BaseModel
 import re
 from dependencies import (
     get_hashed_password,
@@ -20,6 +21,17 @@ from dependencies import (
     Token,
     TokenData,
 )
+
+
+class address(BaseModel):
+    House_name: str
+    Street: str | None
+    City: str
+    State: str
+    Pincode: int
+    Latitude: float
+    Longitude: float
+
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/users/token", scheme_name="JWT")
 
@@ -73,24 +85,52 @@ async def login_user(form_data: OAuth2PasswordRequestForm = Depends()):
         token_type="bearer",
     )
 
+
 @router.get("/me")
 async def get_user(user: TokenData = Depends(get_current_user)):
     return user
 
 
 @router.put("/passwd")
-async def change_password(user: TokenData = Depends(get_current_user), old_password: str = None, new_password: str = None):
+async def change_password(
+    user: TokenData = Depends(get_current_user),
+    old_password: str = None,
+    new_password: str = None,
+):
     if old_password is None:
         raise HTTPException(status_code=400, detail="Old password not provided")
-    
+
     curr_user = await Users.get(username=user.username).only("password_hash")
     old_hash = curr_user.password_hash
     if not verify_password(old_password, old_hash):
         raise HTTPException(status_code=401, detail="Incorrect old password")
-    
+
     if new_password is None:
         raise HTTPException(status_code=400, detail="New password not provided")
-    
+
     new_password = get_hashed_password(new_password)
     await Users.filter(username=user.username).update(password_hash=new_password)
-    return JSONResponse(content={"detail": "Password changed successfully"}, status_code=200)
+    return JSONResponse(
+        content={"detail": "Password changed successfully"}, status_code=200
+    )
+
+
+@router.put("/add-address")
+async def add_address(
+    user: TokenData = Depends(get_current_user), address: address = None
+):
+    if address is None:
+        raise HTTPException(status_code=400, detail="Address not provided")
+
+    await Users.filter(username=user.username).update(
+        House_name=address.House_name,
+        Street=address.Street,
+        City=address.City,
+        State=address.State,
+        Pincode=address.Pincode,
+        Latitude=address.Latitude,
+        Longitude=address.Longitude,
+    )
+    return JSONResponse(
+        content={"detail": "Address added successfully"}, status_code=200
+    )
