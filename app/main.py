@@ -5,10 +5,10 @@ Description: This file contains the main FastAPI app of NeighbourPro backend.
 Author: github.com/pzerone
 """
 import os
-import dotenv
+from dotenv import load_dotenv
 
-dotenv.load_dotenv()
-DB_URL = os.getenv("DB_URL")
+load_dotenv()
+DB_URL = os.environ["DB_URL"]
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware

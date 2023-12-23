@@ -2,7 +2,7 @@ import os
 from dotenv import load_dotenv
 
 load_dotenv()
-db_url = os.getenv("DB_URL")
+db_url = os.environ["DB_URL"]
 
 TORTOISE_ORM = {
     "connections": {"default": db_url},

@@ -2,5 +2,6 @@ FROM python:latest
 COPY . .
 RUN apt-get update && apt-get clean && rm -rf /var/lib/apt/lists/*
 RUN pip install --no-cache-dir --upgrade -r  requirements.txt
-WORKDIR /app
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+EXPOSE 8000
+RUN chmod +x startup.sh
+CMD ["./startup.sh"]
