@@ -23,7 +23,7 @@ from dependencies import (
 )
 
 
-class address(BaseModel):
+class Address(BaseModel):
     House_name: str
     Street: str | None
     City: str
@@ -117,7 +117,7 @@ async def change_password(
 
 @router.put("/add-address")
 async def add_address(
-    user: TokenData = Depends(get_current_user), address: address = None
+    user: TokenData = Depends(get_current_user), address: Address = None
 ):
     if address is None:
         raise HTTPException(status_code=400, detail="Address not provided")
