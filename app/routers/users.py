@@ -52,6 +52,11 @@ async def create_user(user: UserIn_Pydantic):
     if re.match(r"^[^@]+@[^@]+\.[^@]+$", user.email) is None:
         raise HTTPException(status_code=400, detail="Invalid email")
 
+    if re.match(r"^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$", user.password_hash) is None:
+        raise HTTPException(
+            status_code=400,
+            detail="Password must be atleast 8 characters long and contain atleast one letter and one number",
+        )
     user.password_hash = get_hashed_password(user.password_hash)
     await Users.create(**user.dict(exclude_unset=True))
     return JSONResponse(content={"detail": "User creation sucessful"}, status_code=201)
@@ -107,7 +112,11 @@ async def change_password(
 
     if new_password is None:
         raise HTTPException(status_code=400, detail="New password not provided")
-
+    if re.match(r"^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$", new_password) is None:
+        raise HTTPException(
+            status_code=400,
+            detail="Password must be atleast 8 characters long and contain atleast one letter and one number",
+        )
     new_password = get_hashed_password(new_password)
     await Users.filter(username=user.username).update(password_hash=new_password)
     return JSONResponse(
