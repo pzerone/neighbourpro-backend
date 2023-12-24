@@ -143,3 +143,24 @@ async def add_address(
     return JSONResponse(
         content={"detail": "Address added successfully"}, status_code=200
     )
+
+
+@router.put("/update-address")
+async def update_address(
+    user: TokenData = Depends(get_current_user), address: Address = None
+):
+    if address is None:
+        raise HTTPException(status_code=400, detail="Address not provided")
+
+    await Users.filter(username=user.username).update(
+        House_name=address.House_name,
+        Street=address.Street,
+        City=address.City,
+        State=address.State,
+        Pincode=address.Pincode,
+        Latitude=address.Latitude,
+        Longitude=address.Longitude,
+    )
+    return JSONResponse(
+        content={"detail": "Address updated successfully"}, status_code=200
+    )
