@@ -14,12 +14,13 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from tortoise.contrib.fastapi import register_tortoise
 
-from routers import users
+from routers import users, work
 
 app = FastAPI()
 origins = ["*"]
 
 app.include_router(users.router)
+app.include_router(work.router)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
