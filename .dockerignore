@@ -1,0 +1,22 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Docker
+compose.yaml
+Dockerfile
+.docker
+.dockerignore
+
+# Byte-compiled / optimized / DLL files
+**/__pycache__/
+**/*.py[cod]
+
+# Env
+env.sample
+Pipefile
+Pipfile.lock
+
+# VS Code
+.vscode/
