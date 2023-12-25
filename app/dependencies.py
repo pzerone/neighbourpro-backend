@@ -25,8 +25,10 @@ class Token(BaseModel):
 
 
 class TokenData(BaseModel):
+    id: int | None = None
     username: str | None = None
     email: str | None = None
+    role: str | None = None
 
 
 password_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -50,8 +52,10 @@ def create_access_token(subject: TokenData, expires_delta: int = None) -> str:
 
     to_encode = {
         "exp": expires_delta,
+        "id": subject.id,
         "username": subject.username,
         "email": subject.email,
+        "role": subject.role,
     }
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, ALGORITHM)
     return encoded_jwt
@@ -67,8 +71,10 @@ def create_refresh_token(subject: TokenData, expires_delta: int = None) -> str:
 
     to_encode = {
         "exp": expires_delta,
+        "id": subject.id,
         "username": subject.username,
         "email": subject.email,
+        "role": subject.role,
     }
     encoded_jwt = jwt.encode(to_encode, JWT_REFRESH_SECRET_KEY, ALGORITHM)
     return encoded_jwt

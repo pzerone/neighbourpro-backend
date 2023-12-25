@@ -17,8 +17,9 @@ class Users(models.Model):
     first_name = fields.CharField(max_length=50, null=False)
     last_name = fields.CharField(max_length=50, null=True)
 
+    role = fields.CharField(max_length=10, null=False, default="user")
+
     email = fields.CharField(max_length=100, null=False)
-    is_worker = fields.BooleanField(default=False)
     phone_number = fields.CharField(max_length=20, null=False)
     password_hash = fields.CharField(max_length=128, null=False)
 
@@ -41,8 +42,44 @@ class Users(models.Model):
 
     class PydanticMeta:
         computed = ["full_name"]
-        exclude = ["is_worker", "created_at", "modified_at", "House_name", "Street", "City", "State", "Pincode", "Latitude", "Longitude"]
+        exclude = [
+            "role",
+            "created_at",
+            "modified_at",
+            "House_name",
+            "Street",
+            "City",
+            "State",
+            "Pincode",
+            "Latitude",
+            "Longitude",
+        ]
 
 
 User_Pydantic = pydantic_model_creator(Users, name="User")
 UserIn_Pydantic = pydantic_model_creator(Users, name="UserIn", exclude_readonly=True)
+
+
+class Professions(models.Model):
+    id = fields.IntField(pk=True)
+    name = fields.CharField(max_length=20, unique=True)
+    description = fields.TextField(null=True)
+
+    created_at = fields.DatetimeField(auto_now_add=True)
+    modified_at = fields.DatetimeField(auto_now=True)
+
+    created_by = fields.ForeignKeyField(
+        "models.Users", related_name="professions", null=False
+    )
+    modified_by = fields.ForeignKeyField(
+        "models.Users", related_name="professions_modified", null=False
+    )
+
+    class PydanticMeta:
+        exclude = ["created_at", "modified_at", "created_by", "modified_by"]
+
+
+Professions_Pydantic = pydantic_model_creator(Professions, name="Professions")
+ProfessionsIn_Pydantic = pydantic_model_creator(
+    Professions, name="ProfessionsIn", exclude_readonly=True
+)

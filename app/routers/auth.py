@@ -70,7 +70,9 @@ async def login_user(form_data: OAuth2PasswordRequestForm = Depends()):
             content={"detail": "Invalid username of password"}, status_code=401
         )
 
-    token_data = TokenData(username=user.username, email=user.email)
+    token_data = TokenData(
+        username=user.username, email=user.email, role=user.role, id=user.id
+    )
     return Token(
         access_token=create_access_token(token_data),
         refresh_token=create_refresh_token(token_data),
