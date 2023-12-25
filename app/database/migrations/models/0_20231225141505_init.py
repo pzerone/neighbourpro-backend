@@ -18,6 +18,13 @@ CREATE TABLE IF NOT EXISTS "users" (
     "is_worker" BOOL NOT NULL  DEFAULT False,
     "phone_number" VARCHAR(20) NOT NULL,
     "password_hash" VARCHAR(128) NOT NULL,
+    "House_name" VARCHAR(50),
+    "Street" VARCHAR(50),
+    "City" VARCHAR(50),
+    "State" VARCHAR(50),
+    "Pincode" INT,
+    "Latitude" DECIMAL(9,6),
+    "Longitude" DECIMAL(9,6),
     "created_at" TIMESTAMPTZ NOT NULL  DEFAULT CURRENT_TIMESTAMP,
     "modified_at" TIMESTAMPTZ NOT NULL  DEFAULT CURRENT_TIMESTAMP
 );

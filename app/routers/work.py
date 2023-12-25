@@ -7,15 +7,13 @@ Author: github.com/pzerone
 
 from fastapi import APIRouter, HTTPException, Depends
 from fastapi.responses import JSONResponse
-from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
-from pydantic import BaseModel
 from database.models import Users
 from dependencies import TokenData
-from .users import get_current_user
+from .auth import get_current_user
 
 router = APIRouter(
     prefix="/work",
-    tags=["work"],
+    tags=["Work"],
 )
 
 

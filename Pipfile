@@ -13,7 +13,5 @@ tortoise-orm = {extras = ["asyncpg"], version = "*"}
 python-dotenv = "*"
 aerich = "*"
 
-[dev-packages]
-
 [requires]
 python_version = "3.11"
