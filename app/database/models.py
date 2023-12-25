@@ -12,12 +12,15 @@ from tortoise.contrib.pydantic import pydantic_model_creator
 class Users(models.Model):
     #: Auto generated
     id = fields.IntField(pk=True)
-    #: Should be a uuid and internal only. not for front end.
+
     username = fields.CharField(max_length=20, unique=True)
     first_name = fields.CharField(max_length=50, null=False)
     last_name = fields.CharField(max_length=50, null=True)
 
     role = fields.CharField(max_length=10, null=False, default="user")
+    profession = fields.ForeignKeyField(
+        "models.Professions", related_name="profession", null=True
+    )
 
     email = fields.CharField(max_length=100, null=False)
     phone_number = fields.CharField(max_length=20, null=False)

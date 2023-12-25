@@ -4,6 +4,7 @@ File: /main.py
 Description: This file contains the main FastAPI app of NeighbourPro backend.
 Author: github.com/pzerone
 """
+
 import os
 from dotenv import load_dotenv
 

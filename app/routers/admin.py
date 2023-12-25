@@ -1,3 +1,10 @@
+"""
+Title: Admin router
+File: /routers/admin.py
+Description: This file contains the FastAPI router for admin views.
+Author: github.com/pzerone
+"""
+
 from fastapi import APIRouter, HTTPException, Depends
 from fastapi.responses import JSONResponse
 from database.models import (
