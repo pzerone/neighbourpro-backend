@@ -6,7 +6,7 @@ project dependencies and virtual environments are managed using [python-poetry](
 **Note**: You must take care of virtual environment manually if you do not intent to use poetry.
 * Install dependendencies and create virtual env using `poetry`
     
-    ```poetry install```
+    ```poetry install --no-root```
 * Copy `env.sample` file to `.env` and modify variables
 * Run ```./startup.sh dev```
 
@@ -22,7 +22,7 @@ This will run the server in production mode without hot reloading.
 
 `force-recreate` flag is optional, but allows for a clean deployment and is recommended.
 
-**Note**: Docker script is setup to only use `requirments.txt` to install dependencies. This ensures that the image is free of un-needed dependencies. One must generate an updated `requirements.txt` using poetry is there are local changes.
+**Note**: Docker script is setup to only use `requirments.txt` to install dependencies. This ensures that the image is free of un-needed dependencies. One must generate an updated `requirements.txt` using poetry if there are local changes.
 
 To do that, run:
 
