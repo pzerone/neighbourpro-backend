@@ -1,0 +1,22 @@
+[tool.poetry]
+name = "neighbourpro-backend"
+version = "0.1.0"
+description = "NeighbourPro application backend written using python and FastAPI"
+authors = ["Sreejith IV <46400271+pzerone@users.noreply.github.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+fastapi = "^0.108.0"
+python-multipart = "^0.0.6"
+uvicorn = "^0.25.0"
+python-jose = {extras = ["cryptography"], version = "^3.3.0"}
+passlib = {extras = ["bcrypt"], version = "^1.7.4"}
+tortoise-orm = {extras = ["asyncpg"], version = "^0.20.0"}
+python-dotenv = "^1.0.0"
+aerich = "^0.7.2"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
