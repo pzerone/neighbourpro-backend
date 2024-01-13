@@ -1,4 +1,4 @@
-Pipfile.lock
+poetry.lock
 __pycache__/
 
 .env
