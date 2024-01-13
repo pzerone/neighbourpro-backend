@@ -6,9 +6,14 @@ project dependencies and virtual environments are managed using [python-poetry](
 **Note**: You must take care of virtual environment manually if you do not intent to use poetry.
 * Install dependendencies and create virtual env using `poetry`
     
-    ```poetry install --no-root```
+  ```bash
+  poetry install --no-root
+  ```
 * Copy `env.sample` file to `.env` and modify variables
-* Run ```./startup.sh dev```
+* Run:
+  ```bash
+  ./startup.sh dev
+  ```
 
 `startup.sh` will run the server in development mode with hot-reloading enabled.
 ## Deploy
@@ -16,7 +21,9 @@ project dependencies and virtual environments are managed using [python-poetry](
 * Copy `env.sample` to `.env` and make required changes
 * Deploy using docker compose
     
-    ```docker compose up -d --build --force-recreate```
+  ```bash
+  docker compose up -d --build --force-recreate
+  ```
 
 This will run the server in production mode without hot reloading.
 
@@ -26,4 +33,6 @@ This will run the server in production mode without hot reloading.
 
 To do that, run:
 
-```poetry export --without-hashes --format=requrements.txt > requirements.txt```
+```bash
+poetry export --without-hashes --format=requrements.txt > requirements.txt
+```
