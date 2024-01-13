@@ -7,13 +7,17 @@ Author: github.com/pzerone
 
 from fastapi import APIRouter, HTTPException, Depends
 from fastapi.responses import JSONResponse
-from database.models import (
-    Professions,
-    ProfessionsIn_Pydantic,
-)
+from database.models import Professions
 from dependencies import TokenData
-from .auth import get_current_user
+from tortoise.contrib.pydantic.creator import pydantic_model_creator
+from routers.auth import get_current_user
 
+profession_data = pydantic_model_creator(
+    Professions,
+    name="profession_data_input",
+    exclude_readonly=True,
+    include=("name", "description", "estimated_time_hours"),
+)
 
 router = APIRouter(
     prefix="/admin",
@@ -21,11 +25,19 @@ router = APIRouter(
 )
 
 
-@router.post("/add-profession")
+@router.post("/profession")
 async def add_profession(
     user: TokenData = Depends(get_current_user),
-    profession: ProfessionsIn_Pydantic = None,
+    profession: profession_data = None,
 ):
+    """
+    This route is used to add a new profession - only for admin.
+
+    requires:
+    - name
+    - description
+    - estimated_time_hours
+    """
     if user.role != "admin":
         raise HTTPException(status_code=401, detail="Unauthorized")
 
@@ -44,12 +56,21 @@ async def add_profession(
     )
 
 
-@router.put("/update-profession")
+@router.put("/profession/{profession_id}")
 async def update_profession(
     user: TokenData = Depends(get_current_user),
-    profession: ProfessionsIn_Pydantic = None,
+    profession: profession_data = None,
     profession_id: int = None,
 ):
+    """
+    This route is used to update a profession - only for admin.
+
+    requires:
+    - profession_id
+    - name
+    - description
+    - estimated_time_hours
+    """
     if user.role != "admin":
         raise HTTPException(status_code=401, detail="Unauthorized")
 
@@ -68,10 +89,16 @@ async def update_profession(
     )
 
 
-@router.delete("/delete-profession")
+@router.delete("/profession/{profession_id}")
 async def delete_profession(
     user: TokenData = Depends(get_current_user), profession_id: int = None
 ):
+    """
+    This route is used to delete a profession - only for admin.
+
+    requires:
+    - profession_id
+    """
     if user.role != "admin":
         raise HTTPException(status_code=401, detail="Unauthorized")
 

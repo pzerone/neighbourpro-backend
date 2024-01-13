@@ -8,7 +8,7 @@ Author: github.com/pzerone
 from fastapi import APIRouter, HTTPException, Depends
 from fastapi.responses import JSONResponse
 from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
-from database.models import Users, UserIn_Pydantic
+from database.models import Users
 from tortoise.expressions import Q
 import re
 from dependencies import (
@@ -20,9 +20,28 @@ from dependencies import (
     Token,
     TokenData,
 )
+from tortoise.contrib.pydantic.creator import pydantic_model_creator
 
+signup_data = pydantic_model_creator(
+    Users,
+    name="User Signup Data Input",
+    exclude_readonly=True,
+    exclude=(
+        "role",
+        "profession_id",
+        "hourly_rate",
+        "worker_bio",
+        "House_name",
+        "Street",
+        "City",
+        "State",
+        "Pincode",
+        "Latitude",
+        "Longitude",
+    ),
+)
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/token", scheme_name="JWT")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login", scheme_name="JWT")
 
 router = APIRouter(
     prefix="/auth",
@@ -31,7 +50,20 @@ router = APIRouter(
 
 
 @router.post("/register")
-async def create_user(user: UserIn_Pydantic):
+async def create_user(user: signup_data):
+    """
+    This route is used to create a new user.
+    
+    requires:
+    - username
+    - first_name
+    - last_name
+    - email
+    - phone_number
+    - password
+    
+    Password must be atleast 8 characters long and contain atleast one letter and one number
+    """
     user_exists = await Users.filter(Q(username=user.username) | Q(email=user.email))
     if user_exists:
         raise HTTPException(status_code=400, detail="User already exists")
@@ -56,8 +88,20 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
     return TokenData(**create_user)
 
 
-@router.post("/token", response_model=Token)
+@router.post("/login", response_model=Token)
 async def login_user(form_data: OAuth2PasswordRequestForm = Depends()):
+    """
+    This route is used to login a user.
+
+    requires:
+    - username
+    - password
+
+    returns:
+    - access_token
+    - refresh_token
+    - token_type
+    """
     try:
         user = await Users.get(username=form_data.username)
     except:
@@ -82,6 +126,15 @@ async def login_user(form_data: OAuth2PasswordRequestForm = Depends()):
 
 @router.get("/me")
 async def get_user(user: TokenData = Depends(get_current_user)):
+    """
+    This route is used to get the details of the logged in user.
+
+    returns:
+    - id
+    - username
+    - role
+    - email
+    """
     return user
 
 
@@ -91,10 +144,19 @@ async def change_password(
     old_password: str = None,
     new_password: str = None,
 ):
+    """
+    This route is used to change the password of the logged in user.
+
+    requires:
+    - old_password
+    - new_password
+
+    Password must be atleast 8 characters long and contain atleast one letter and one number
+    """
     if old_password is None:
         raise HTTPException(status_code=400, detail="Old password not provided")
 
-    curr_user = await Users.get(username=user.username).only("password_hash")
+    curr_user = await Users.get(username=user.username)
     old_hash = curr_user.password_hash
     if not verify_password(old_password, old_hash):
         raise HTTPException(status_code=401, detail="Incorrect old password")

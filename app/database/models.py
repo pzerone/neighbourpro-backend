@@ -6,13 +6,14 @@ Author: github.com/pzerone
 """
 
 from tortoise import fields, models
-from tortoise.contrib.pydantic import pydantic_model_creator
+from tortoise.contrib.postgres.fields import ArrayField
+
+
+# TODO: Add user_avg_rating field to Users model for workers
 
 
 class Users(models.Model):
-    #: Auto generated
     id = fields.IntField(pk=True)
-
     username = fields.CharField(max_length=20, unique=True)
     first_name = fields.CharField(max_length=50, null=False)
     last_name = fields.CharField(max_length=50, null=True)
@@ -21,6 +22,8 @@ class Users(models.Model):
     profession = fields.ForeignKeyField(
         "models.Professions", related_name="profession", null=True
     )
+    hourly_rate = fields.FloatField(null=True)
+    worker_bio = fields.TextField(null=True)
 
     email = fields.CharField(max_length=100, null=False)
     phone_number = fields.CharField(max_length=20, null=False)
@@ -45,44 +48,70 @@ class Users(models.Model):
 
     class PydanticMeta:
         computed = ["full_name"]
-        exclude = [
-            "role",
-            "created_at",
-            "modified_at",
-            "House_name",
-            "Street",
-            "City",
-            "State",
-            "Pincode",
-            "Latitude",
-            "Longitude",
-        ]
-
-
-User_Pydantic = pydantic_model_creator(Users, name="User")
-UserIn_Pydantic = pydantic_model_creator(Users, name="UserIn", exclude_readonly=True)
+        exclude = ["created_at", "modified_at"]
 
 
 class Professions(models.Model):
     id = fields.IntField(pk=True)
     name = fields.CharField(max_length=20, unique=True)
     description = fields.TextField(null=True)
+    estimated_time_hours = fields.FloatField(null=True)
 
     created_at = fields.DatetimeField(auto_now_add=True)
     modified_at = fields.DatetimeField(auto_now=True)
 
-    created_by = fields.ForeignKeyField(
-        "models.Users", related_name="professions", null=False
+    # created_by = fields.ForeignKeyField(                                #
+    #     "models.Users", related_name="professions", null=False          #
+    # )                                                                   # TODO: Fix cyclic foreign key reference
+    # modified_by = fields.ForeignKeyField(                               #
+    #     "models.Users", related_name="professions_modified", null=False #
+    # )
+
+    class PydanticMeta:
+        exclude = ["id", "created_at", "modified_at"]
+
+
+class Works(models.Model):
+    id = fields.IntField(pk=True)
+    tags = ArrayField(null=True, element_type="text")
+    user_description = fields.TextField(null=True)
+    scheduled_date = fields.DateField(null=True)
+    scheduled_time = fields.TimeField(null=True)
+
+    booked_by = fields.ForeignKeyField(
+        "models.Users", related_name="booked_by", null=False
     )
-    modified_by = fields.ForeignKeyField(
-        "models.Users", related_name="professions_modified", null=False
+    assigned_to = fields.ForeignKeyField(
+        "models.Users", related_name="assigned_to", null=False
+    )
+    profession = fields.ForeignKeyField(
+        "models.Professions", related_name="profession_type", null=False
+    )
+    status = fields.CharField(max_length=20, null=False, default="pending")
+    payment_status = fields.CharField(max_length=20, null=False, default="pending")
+
+    estimated_cost = fields.FloatField(null=True)
+    final_cost = fields.FloatField(null=True)
+
+    created_at = fields.DatetimeField(auto_now_add=True)
+    modified_at = fields.DatetimeField(auto_now=True)
+
+    class PydanticMeta:
+        exclude = ["created_at", "modified_at", "booked_by"]
+
+
+class Reviews(models.Model):
+    id = fields.IntField(pk=True)
+    rating = fields.IntField(null=False)  # 1 to 5
+    review = fields.TextField(null=True)
+
+    created_at = fields.DatetimeField(auto_now_add=True)
+    modified_at = fields.DatetimeField(auto_now=True)
+
+    user_id = fields.ForeignKeyField("models.Users", related_name="user_id", null=False)
+    worker_id = fields.ForeignKeyField(
+        "models.Users", related_name="worker_id", null=False
     )
 
     class PydanticMeta:
-        exclude = ["created_at", "modified_at", "created_by", "modified_by"]
-
-
-Professions_Pydantic = pydantic_model_creator(Professions, name="Professions")
-ProfessionsIn_Pydantic = pydantic_model_creator(
-    Professions, name="ProfessionsIn", exclude_readonly=True
-)
+        exclude = ["created_at", "modified_at", "reviewed_by", "reviewed_to"]

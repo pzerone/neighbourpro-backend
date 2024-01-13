@@ -9,8 +9,9 @@ from typing import List
 from fastapi import APIRouter, HTTPException, Depends
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
+from tortoise.contrib.pydantic.creator import pydantic_model_creator
 from dependencies import TokenData
-from database.models import Users, Professions, Professions_Pydantic
+from database.models import Users, Professions
 from routers.auth import get_current_user
 
 
@@ -24,6 +25,19 @@ class Address(BaseModel):
     Longitude: float
 
 
+class WorkerUpgrade(BaseModel):
+    profession_id: int
+    hourly_rate: float
+    worker_bio: str
+
+
+professions_data = pydantic_model_creator(
+    Professions,
+    name="profession_data_input",
+    include=("id", "name", "description", "estimated_time_hours"),
+)  # Not DRY, same model exists in admin.py, should we import it from there?
+   # Why not: yet to fix all relative imports
+
 router = APIRouter(
     prefix="/users",
     tags=["Users"],
@@ -34,6 +48,19 @@ router = APIRouter(
 async def add_address(
     user: TokenData = Depends(get_current_user), address: Address = None
 ):
+    """
+    This route is used to add an address to the user. Address is required for a user to be a professional,
+    booking a work, etc.
+
+    requires:
+    - House_name
+    - Street
+    - City
+    - State
+    - Pincode
+    - Latitude
+    - Longitude
+    """
     if address is None:
         raise HTTPException(status_code=400, detail="Address not provided")
 
@@ -51,32 +78,70 @@ async def add_address(
     )
 
 
-@router.get("/get-professions", response_model=List[Professions_Pydantic])
+@router.get("/professions", response_model=List[professions_data])
 async def get_professions():
-    return await Professions_Pydantic.from_queryset(Professions.all())
+    """
+    This route is used to get all the professions available in the database.
+    """
+    return await professions_data.from_queryset(Professions.all())
+
+
+@router.get("/profession/{profession_id}", response_model=professions_data)
+async def get_profession(profession_id: int):
+    """
+    This route is used to get a profession for a given profession id.
+
+    requires:
+    - profession_id
+
+    Note: This route does not return any extra data than the /professions route, keeping this since we might have more data about a profession to be send to user in future
+    """
+    try:
+        profession = await professions_data.from_queryset_single(
+            Professions.get(id=profession_id)
+        )
+    except:
+        raise HTTPException(status_code=400, detail="Profession does not exist")
+    return profession
 
 
 @router.put("/switch-to-professional")
 async def switch_to_professional(
-    user: TokenData = Depends(get_current_user), profession_id: int = None
+    user: TokenData = Depends(get_current_user), details: WorkerUpgrade = None
 ):
+    """
+    This route is used to switch a user to a professional.
+
+    requires:
+    - profession_id
+    - hourly_rate
+    - worker_bio
+    """
     # If the user is already a professional, then do not allow switching
     if user.role == "worker":
-        raise HTTPException(status_code=401, detail="Unauthorized")
+        raise HTTPException(status_code=400, detail="Already a professional")
 
-    if profession_id is None:
-        raise HTTPException(status_code=400, detail="Profession not provided")
+    if details is None:
+        raise HTTPException(status_code=400, detail="Details not provided")
+
+    if details.hourly_rate <= 0:
+        raise HTTPException(
+            status_code=400, detail="Hourly rate must be greater than 0"
+        )
 
     curr_user = await Users.filter(username=user.username).first()
     if curr_user.House_name is None:
         raise HTTPException(status_code=400, detail="User does not have valid address")
 
-    profession_exists = await Professions.filter(id=profession_id)
+    profession_exists = await Professions.filter(id=details.profession_id)
     if not profession_exists:
         raise HTTPException(status_code=400, detail="Profession does not exist")
 
     await Users.filter(username=user.username).update(
-        profession_id=profession_id, role="worker"
+        profession_id=details.profession_id,
+        role="worker",
+        hourly_rate=details.hourly_rate,
+        worker_bio=details.worker_bio,
     )
     return JSONResponse(
         content={"detail": "switched to professional succesfully"}, status_code=200
