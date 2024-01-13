@@ -81,9 +81,7 @@ async def update_profession(
     if not profession_exists:
         raise HTTPException(status_code=400, detail="Profession does not exist")
 
-    await Professions.filter(id=profession_id).update(
-        **profession.model_dump(), modified_by_id=user.id
-    )
+    await Professions.filter(id=profession_id).update(**profession.model_dump())
     return JSONResponse(
         content={"detail": "Profession updated successfully"}, status_code=201
     )

@@ -15,8 +15,8 @@ Dockerfile
 
 # Env
 env.sample
-Pipefile
-Pipfile.lock
+pyproject.toml
+Poetry.lock
 
 # VS Code
 .vscode/
