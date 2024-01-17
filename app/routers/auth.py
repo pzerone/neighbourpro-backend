@@ -163,6 +163,7 @@ async def change_password(
 
     if new_password is None:
         raise HTTPException(status_code=400, detail="New password not provided")
+    
     if re.match(r"^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$", new_password) is None:
         raise HTTPException(
             status_code=400,
