@@ -148,3 +148,19 @@ async def switch_to_professional(
     return JSONResponse(
         content={"detail": "switched to professional succesfully"}, status_code=200
     )
+
+
+@router.get("/recommend")
+async def get_recommendations(user: TokenData = Depends(get_current_user)):
+    """
+    This route is used to get recommended professions for a user. Uses collaborative filtering.
+    """
+
+    # TODO: Use collaborative filtering to get recommendations
+
+    # Dummy data for now
+    professions = await professions_data.from_queryset(Professions.all())
+    return {
+        "recommendations": professions,
+        "Based on your recent activity": professions,
+    }
