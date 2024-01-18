@@ -18,8 +18,8 @@ class Professions(models.Model):
     description = fields.TextField(null=True)
     estimated_time_hours = fields.FloatField(null=True)
 
-    created_at = fields.DatetimeField(auto_now_add=True)
-    modified_at = fields.DatetimeField(auto_now=True)
+    created_at = fields.DatetimeField()
+    modified_at = fields.DatetimeField()
 
     # created_by = fields.ForeignKeyField(                                #
     #     "models.Users", related_name="professions", null=False          #
@@ -58,8 +58,8 @@ class Users(models.Model):
     Latitude = fields.DecimalField(max_digits=9, decimal_places=6, null=True)
     Longitude = fields.DecimalField(max_digits=9, decimal_places=6, null=True)
 
-    created_at = fields.DatetimeField(auto_now_add=True)
-    modified_at = fields.DatetimeField(auto_now=True)
+    created_at = fields.DatetimeField()
+    modified_at = fields.DatetimeField()
 
     def full_name(self) -> str:
         if self.last_name:
@@ -93,8 +93,8 @@ class Works(models.Model):
     estimated_cost = fields.FloatField(null=True)
     final_cost = fields.FloatField(null=True)
 
-    created_at = fields.DatetimeField(auto_now_add=True)
-    modified_at = fields.DatetimeField(auto_now=True)
+    created_at = fields.DatetimeField()
+    modified_at = fields.DatetimeField()
 
     class PydanticMeta:
         exclude = ["created_at", "modified_at", "booked_by"]
@@ -105,8 +105,8 @@ class Reviews(models.Model):
     rating = fields.IntField(null=False)  # 1 to 5
     review = fields.TextField(null=True)
 
-    created_at = fields.DatetimeField(auto_now_add=True)
-    modified_at = fields.DatetimeField(auto_now=True)
+    created_at = fields.DatetimeField()
+    modified_at = fields.DatetimeField()
 
     user_id: fields.ForeignKeyRelation[Users] = fields.ForeignKeyField(
         "models.Users", related_name="user_id", null=False
