@@ -10,6 +10,7 @@ from fastapi.responses import JSONResponse
 from database.models import Professions
 from dependencies import TokenData
 from tortoise.contrib.pydantic.creator import pydantic_model_creator
+from tortoise import timezone
 from routers.auth import get_current_user
 
 profession_data = pydantic_model_creator(
@@ -48,7 +49,9 @@ async def add_profession(
     if profession_exists:
         raise HTTPException(status_code=400, detail="Profession already exists")
 
-    await Professions.create(**profession.model_dump())
+    await Professions.create(
+        **profession.model_dump(), created_at=timezone.now(), modified_at=timezone.now()
+    )
     return JSONResponse(
         content={"detail": "Profession added successfully"}, status_code=201
     )
@@ -79,7 +82,9 @@ async def update_profession(
     if not profession_exists:
         raise HTTPException(status_code=400, detail="Profession does not exist")
 
-    await Professions.filter(id=profession_id).update(**profession.model_dump())
+    await Professions.filter(id=profession_id).update(
+        **profession.model_dump(), modified_at=timezone.now()
+    )
     return JSONResponse(
         content={"detail": "Profession updated successfully"}, status_code=201
     )

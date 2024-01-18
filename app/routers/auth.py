@@ -10,6 +10,7 @@ from fastapi.responses import JSONResponse
 from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
 from database.models import Users
 from tortoise.expressions import Q
+from tortoise import timezone
 import re
 from dependencies import (
     get_hashed_password,
@@ -53,7 +54,7 @@ router = APIRouter(
 async def create_user(user: signup_data):
     """
     This route is used to create a new user.
-    
+
     requires:
     - username
     - first_name
@@ -61,7 +62,7 @@ async def create_user(user: signup_data):
     - email
     - phone_number
     - password
-    
+
     Password must be atleast 8 characters long and contain atleast one letter and one number
     """
     user_exists = await Users.filter(Q(username=user.username) | Q(email=user.email))
@@ -77,7 +78,11 @@ async def create_user(user: signup_data):
             detail="Password must be atleast 8 characters long and contain atleast one letter and one number",
         )
     user.password_hash = get_hashed_password(user.password_hash)
-    await Users.create(**user.dict(exclude_unset=True))
+    await Users.create(
+        **user.dict(exclude_unset=True),
+        created_at=timezone.now(),
+        modified_at=timezone.now()
+    )
     return JSONResponse(content={"detail": "User creation sucessful"}, status_code=201)
 
 
@@ -163,14 +168,16 @@ async def change_password(
 
     if new_password is None:
         raise HTTPException(status_code=400, detail="New password not provided")
-    
+
     if re.match(r"^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$", new_password) is None:
         raise HTTPException(
             status_code=400,
             detail="Password must be atleast 8 characters long and contain atleast one letter and one number",
         )
     new_password = get_hashed_password(new_password)
-    await Users.filter(username=user.username).update(password_hash=new_password)
+    await Users.filter(username=user.username).update(
+        password_hash=new_password, modified_at=timezone.now()
+    )
     return JSONResponse(
         content={"detail": "Password changed successfully"}, status_code=200
     )

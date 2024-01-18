@@ -9,6 +9,7 @@ from typing import List
 from fastapi import APIRouter, HTTPException, Depends
 from fastapi.responses import JSONResponse
 from tortoise.contrib.pydantic.creator import pydantic_model_creator
+from tortoise import timezone
 from database.models import Users, Professions, Works
 
 
@@ -150,6 +151,8 @@ async def create_work(
         booked_by_id=user.id,
         status="pending",
         payment_status="pending",
-        estimated_cost=estimated_cost
+        estimated_cost=estimated_cost,
+        created_at=timezone.now(),
+        modified_at=timezone.now(),
     )
     return JSONResponse(content={"detail": "Work creation sucessful"}, status_code=201)

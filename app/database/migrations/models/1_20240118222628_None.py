@@ -14,8 +14,8 @@ CREATE TABLE IF NOT EXISTS "professions" (
     "name" VARCHAR(20) NOT NULL UNIQUE,
     "description" TEXT,
     "estimated_time_hours" DOUBLE PRECISION,
-    "created_at" TIMESTAMPTZ NOT NULL  DEFAULT CURRENT_TIMESTAMP,
-    "modified_at" TIMESTAMPTZ NOT NULL  DEFAULT CURRENT_TIMESTAMP
+    "created_at" TIMESTAMPTZ NOT NULL,
+    "modified_at" TIMESTAMPTZ NOT NULL
 );
 CREATE TABLE IF NOT EXISTS "users" (
     "id" SERIAL NOT NULL PRIMARY KEY,
@@ -35,16 +35,16 @@ CREATE TABLE IF NOT EXISTS "users" (
     "Pincode" INT,
     "Latitude" DECIMAL(9,6),
     "Longitude" DECIMAL(9,6),
-    "created_at" TIMESTAMPTZ NOT NULL  DEFAULT CURRENT_TIMESTAMP,
-    "modified_at" TIMESTAMPTZ NOT NULL  DEFAULT CURRENT_TIMESTAMP,
+    "created_at" TIMESTAMPTZ NOT NULL,
+    "modified_at" TIMESTAMPTZ NOT NULL,
     "profession_id" INT REFERENCES "professions" ("id") ON DELETE CASCADE
 );
 CREATE TABLE IF NOT EXISTS "reviews" (
     "id" SERIAL NOT NULL PRIMARY KEY,
     "rating" INT NOT NULL,
     "review" TEXT,
-    "created_at" TIMESTAMPTZ NOT NULL  DEFAULT CURRENT_TIMESTAMP,
-    "modified_at" TIMESTAMPTZ NOT NULL  DEFAULT CURRENT_TIMESTAMP,
+    "created_at" TIMESTAMPTZ NOT NULL,
+    "modified_at" TIMESTAMPTZ NOT NULL,
     "user_id_id" INT NOT NULL REFERENCES "users" ("id") ON DELETE CASCADE,
     "worker_id_id" INT NOT NULL REFERENCES "users" ("id") ON DELETE CASCADE
 );
@@ -58,8 +58,8 @@ CREATE TABLE IF NOT EXISTS "works" (
     "payment_status" VARCHAR(20) NOT NULL  DEFAULT 'pending',
     "estimated_cost" DOUBLE PRECISION,
     "final_cost" DOUBLE PRECISION,
-    "created_at" TIMESTAMPTZ NOT NULL  DEFAULT CURRENT_TIMESTAMP,
-    "modified_at" TIMESTAMPTZ NOT NULL  DEFAULT CURRENT_TIMESTAMP,
+    "created_at" TIMESTAMPTZ NOT NULL,
+    "modified_at" TIMESTAMPTZ NOT NULL,
     "assigned_to_id" INT NOT NULL REFERENCES "users" ("id") ON DELETE CASCADE,
     "booked_by_id" INT NOT NULL REFERENCES "users" ("id") ON DELETE CASCADE,
     "profession_id" INT NOT NULL REFERENCES "professions" ("id") ON DELETE CASCADE

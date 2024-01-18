@@ -10,6 +10,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from tortoise.contrib.pydantic.creator import pydantic_model_creator
+from tortoise import timezone
 from dependencies import TokenData
 from database.models import Users, Professions
 from routers.auth import get_current_user
@@ -35,8 +36,7 @@ professions_data = pydantic_model_creator(
     Professions,
     name="profession_data_input",
     include=("id", "name", "description", "estimated_time_hours"),
-)  # Not DRY, same model exists in admin.py, should we import it from there?
-   # Why not: yet to fix all relative imports
+)
 
 router = APIRouter(
     prefix="/users",
@@ -72,6 +72,7 @@ async def add_address(
         Pincode=address.Pincode,
         Latitude=address.Latitude,
         Longitude=address.Longitude,
+        modified_at=timezone.now(),
     )
     return JSONResponse(
         content={"detail": "Address added successfully"}, status_code=200
@@ -86,7 +87,7 @@ async def get_professions():
     return await professions_data.from_queryset(Professions.all())
 
 
-@router.get("/profession/{profession_id}", response_model=professions_data)
+@router.get("/professions/{profession_id}", response_model=professions_data)
 async def get_profession(profession_id: int):
     """
     This route is used to get a profession for a given profession id.
@@ -142,6 +143,7 @@ async def switch_to_professional(
         role="worker",
         hourly_rate=details.hourly_rate,
         worker_bio=details.worker_bio,
+        modified_at=timezone.now(),
     )
     return JSONResponse(
         content={"detail": "switched to professional succesfully"}, status_code=200

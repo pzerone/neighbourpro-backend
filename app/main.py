@@ -54,8 +54,9 @@ register_tortoise(
                 "default_connection": "default",
             },
         },
-        "use_tz": False,
-        "timezone": "Asia/Kolkata",
+        # Refer: https://tortoise.github.io/timezone.html
+        "use_tz": False, # If True, then the datetime fields will be timezone aware (UTC)
+        "timezone": "UTC", # Make Tortoise aware which timezone database is using
     },
     add_exception_handlers=True,
 )
