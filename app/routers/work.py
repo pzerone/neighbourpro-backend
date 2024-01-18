@@ -44,6 +44,25 @@ work_create_in = pydantic_model_creator(
     ),
 )
 
+work_details_out = pydantic_model_creator(
+    Works,
+    name="Work Details Data Output",
+    include=(
+        "id",
+        "tags",
+        "user_description",
+        "assigned_to_id",
+        "booked_by_id",
+        "profession_id",
+        "status",
+        "payment_status",
+        "estimated_cost",
+        "final_cost",
+        "created_at",
+        "modified_at",
+    ),
+)
+
 router = APIRouter(
     prefix="/work",
     tags=["Work"],
@@ -131,7 +150,7 @@ async def create_work(
         booked_worker = await Users.get(id=work.assigned_to_id)
     except:
         raise HTTPException(status_code=404, detail="Professional does not exist")
-    
+
     if booked_worker.role != "worker":
         raise HTTPException(
             status_code=400, detail="selected user is not a professional"
@@ -156,3 +175,28 @@ async def create_work(
         modified_at=timezone.now(),
     )
     return JSONResponse(content={"detail": "Work creation sucessful"}, status_code=201)
+
+
+@router.get("/booked-works", response_model=List[work_details_out])
+async def get_my_works(user: TokenData = Depends(get_current_user)):
+    """
+    This route is used to get the list of works created by the user.
+
+    returns:
+    - List of works
+    """
+    return await work_details_out.from_queryset(Works.filter(booked_by_id=user.id))
+
+
+@router.get("/assigned-works", response_model=List[work_details_out])
+async def get_assigned_works(user: TokenData = Depends(get_current_user)):
+    """
+    This route is used to get the list of works assigned to the worker.
+    User must be a worker to access this route.
+
+    returns:
+    - List of works
+    """
+    if user.role != "worker":
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    return await work_details_out.from_queryset(Works.filter(assigned_to_id=user.id))
