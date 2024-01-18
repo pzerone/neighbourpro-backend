@@ -48,9 +48,7 @@ async def add_profession(
     if profession_exists:
         raise HTTPException(status_code=400, detail="Profession already exists")
 
-    await Professions.create(
-        **profession.model_dump(), created_by_id=user.id, modified_by_id=user.id
-    )
+    await Professions.create(**profession.model_dump())
     return JSONResponse(
         content={"detail": "Profession added successfully"}, status_code=201
     )
