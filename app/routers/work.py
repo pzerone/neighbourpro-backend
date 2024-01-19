@@ -57,9 +57,28 @@ work_details_out = pydantic_model_creator(
         "status",
         "payment_status",
         "estimated_cost",
+        "scheduled_date",
+        "scheduled_time",
         "final_cost",
         "created_at",
         "modified_at",
+    ),
+)
+
+client_details = pydantic_model_creator(
+    Users,
+    name="Client Details Data Output",
+    include=(
+        "first_name",
+        "last_name",
+        "House_name",
+        "Street",
+        "City",
+        "State",
+        "Pincode",
+        "Latitude",
+        "Longitude",
+        "phone_number",
     ),
 )
 
@@ -124,13 +143,15 @@ async def create_work(
     work: work_create_in, user: TokenData = Depends(get_current_user)
 ):
     """
-    This route is used to book a work.
+    This route is used to book a work. scheduled_time must be timezone naive and in UTC time.
 
     requires:
     - List of tags(Optional)
     - user_description
     - assigned_to
     - profession_id
+    - scheduled_date
+    - scheduled_time
     """
     current_user = await Users.get(id=user.id)
     if not current_user.Latitude or not current_user.Longitude:
@@ -162,6 +183,23 @@ async def create_work(
             status_code=400,
             detail="selected worker is not a professional of selected profession",
         )
+
+    if work.scheduled_date < timezone.now().date():
+        raise HTTPException(
+            status_code=400,
+            detail="Scheduled date is in the past. Only future works can be booked",
+        )
+    if timezone.is_aware(work.scheduled_time):
+        raise HTTPException(
+            status_code=400,
+            detail="""Scheduled time should not be timezone aware. Only naive time is allowed. Conversion to aware time is done automatically. Eg: 10:00:00 instead of 10:00:00+05:30""",
+        )
+    if work.scheduled_time < timezone.now().time():
+        raise HTTPException(
+            status_code=400,
+            detail="Scheduled time is in the past. Only future works can be booked",
+        )
+
     estimated_cost = (
         booked_worker.hourly_rate * booked_worker.profession.estimated_time_hours
     )
@@ -200,3 +238,248 @@ async def get_assigned_works(user: TokenData = Depends(get_current_user)):
     if user.role != "worker":
         raise HTTPException(status_code=401, detail="Unauthorized")
     return await work_details_out.from_queryset(Works.filter(assigned_to_id=user.id))
+
+
+@router.post("/accept-work/{work_id}")
+async def accept_work(work_id: int, user: TokenData = Depends(get_current_user)):
+    """
+    This route is used to accept a work.
+    User must be the assigned worker of the work to access this route.
+
+    requires:
+    - work_id
+    """
+    try:
+        work = await Works.get(id=work_id)
+    except:
+        raise HTTPException(
+            status_code=404,
+            detail="Work id does not correspond to a valid work booking",
+        )
+
+    if work.assigned_to_id != user.id:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    if work.status != "pending":
+        raise HTTPException(
+            status_code=400,
+            detail="Work is not in pending state. Only pending works can be accepted",
+        )
+    if work.scheduled_date < timezone.now().date():
+        await Works.filter(id=work_id).update(
+            status="expired", modified_at=timezone.now()
+        )
+        raise HTTPException(
+            status_code=400,
+            detail="Work already expired. Only future works can be accepted",
+        )
+    # work.scheduled_time is timezone aware(Do not know which part of the stack adds the timezone).
+    # Hence we need to convert timezone.now().time() to aware time for comparison since
+    # timezone.now().time() is timezone naive
+    if work.scheduled_time < timezone.make_aware(timezone.now().time()):
+        await Works.filter(id=work_id).update(
+            status="expired", modified_at=timezone.now()
+        )
+        raise HTTPException(
+            status_code=400,
+            detail="Work already expired. Only future works can be accepted",
+        )
+
+    await Works.filter(id=work_id).update(status="accepted", modified_at=timezone.now())
+    return JSONResponse(
+        content={"detail": "Work accepted sucessfully"}, status_code=200
+    )
+
+
+@router.post("/cancel-work/{work_id}")
+async def cancel_work(work_id: int, user: TokenData = Depends(get_current_user)):
+    """
+    This route is used to cancel a work.
+    User must be the creator of the work to cancel it.
+
+    requires:
+    - work_id
+    """
+    try:
+        work = await Works.get(id=work_id)
+    except:
+        raise HTTPException(
+            status_code=404,
+            detail="Work id does not correspond to a valid work booking",
+        )
+
+    if work.booked_by_id != user.id:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    if work.status != "pending":
+        raise HTTPException(
+            status_code=400,
+            detail="Work is not in pending state. Only pending works can be cancelled",
+        )
+
+    await Works.filter(id=work_id).update(
+        status="cancelled", modified_at=timezone.now()
+    )
+    return JSONResponse(
+        content={"detail": "Work cancelled sucessfully"}, status_code=200
+    )
+
+
+@router.post("/reject-work/{work_id}")
+async def reject_work(work_id: int, user: TokenData = Depends(get_current_user)):
+    """
+    This route is used to reject a work.
+    User must be the assigned worker of the work to access this route.
+
+    requires:
+    - work_id
+    """
+    try:
+        work = await Works.get(id=work_id)
+    except:
+        raise HTTPException(
+            status_code=404,
+            detail="Work id does not correspond to a valid work booking",
+        )
+
+    if work.assigned_to_id != user.id:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    if work.status != "pending":
+        raise HTTPException(
+            status_code=400,
+            detail="Work is not in pending state. Only pending works can be rejected",
+        )
+    
+    if work.scheduled_date < timezone.now().date():
+        await Works.filter(id=work_id).update(
+            status="expired", modified_at=timezone.now()
+        )
+        raise HTTPException(
+            status_code=400,
+            detail="Work already expired. Only future works can be rejected",
+        )
+    if work.scheduled_time < timezone.make_aware(timezone.now().time()):
+        await Works.filter(id=work_id).update(
+            status="expired", modified_at=timezone.now()
+        )
+        raise HTTPException(
+            status_code=400,
+            detail="Work already expired. Only future works can be rejected",
+        )
+
+    await Works.filter(id=work_id).update(status="rejected", modified_at=timezone.now())
+    return JSONResponse(
+        content={"detail": "Work rejected sucessfully"}, status_code=200
+    )
+
+
+@router.get("/client-contact-details/{work_id}", response_model=client_details)
+async def get_client_contact_details(
+    work_id: int, user: TokenData = Depends(get_current_user)
+):
+    """
+    This route is used to get the contact information of the client.
+    This information includes the full name, address, cordinates and phone number of the client for a given work id.
+    User must be the assigned worker of the work to access this route.
+
+    requires:
+    - work_id
+
+    returns:
+    - Full Name
+    - First Name
+    - Last Name
+    - House Name
+    - Street
+    - City
+    - State
+    - Pincode
+    - Latitude
+    - Longitude
+    - Phone Number
+    """
+    try:
+        work = await Works.get(id=work_id)
+    except:
+        raise HTTPException(
+            status_code=404,
+            detail="Work id does not correspond to a valid work booking",
+        )
+
+    if work.assigned_to_id != user.id:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    if work.status != "accepted":
+        raise HTTPException(
+            status_code=400,
+            detail="Work is not in accepted state. Accept the work before getting client details",
+        )
+
+    await work.fetch_related("booked_by")
+    return await client_details.from_tortoise_orm(work.booked_by)
+
+
+@router.post("/start-work/{work_id}")
+async def start_work(work_id: int, user: TokenData = Depends(get_current_user)):
+    """
+    This route is used to start a work.
+    User must be the assigned worker of the work to access this route.
+
+    requires:
+    - work_id
+    """
+    try:
+        work = await Works.get(id=work_id)
+    except:
+        raise HTTPException(
+            status_code=404,
+            detail="Work id does not correspond to a valid work booking",
+        )
+
+    if work.assigned_to_id != user.id:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    if work.status != "accepted":
+        raise HTTPException(
+            status_code=400,
+            detail="Work is not in accepted state. Accept the work before starting it",
+        )
+
+    await Works.filter(id=work_id).update(status="started", modified_at=timezone.now())
+    return JSONResponse(content={"detail": "Work started sucessfully"}, status_code=200)
+
+
+@router.post("/quote-final-cost/{work_id}")
+async def quote_final_cost(
+    work_id: int, final_cost: float, user: TokenData = Depends(get_current_user)
+):
+    """
+    This route is used to quote the final cost of a work.
+    User must be the assigned worker of the work to access this route.
+
+    requires:
+    - work_id
+    - final_cost
+    """
+    try:
+        work = await Works.get(id=work_id)
+    except:
+        raise HTTPException(
+            status_code=404,
+            detail="Work id does not correspond to a valid work booking",
+        )
+
+    if work.assigned_to_id != user.id:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    if work.status != "started":
+        raise HTTPException(
+            status_code=400,
+            detail="Work is not yet in started state. Only started works can be quoted",
+        )
+
+    await Works.filter(id=work_id).update(final_cost=final_cost, modified_at=timezone.now())
+    return JSONResponse(
+        content={"detail": "Final cost quoted sucessfully"}, status_code=200
+    )
