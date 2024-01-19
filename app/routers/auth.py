@@ -8,11 +8,11 @@ Author: github.com/pzerone
 from fastapi import APIRouter, HTTPException, Depends
 from fastapi.responses import JSONResponse
 from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
-from database.models import Users
+from app.database.models import Users
 from tortoise.expressions import Q
 from tortoise import timezone
 import re
-from dependencies import (
+from app.dependencies import (
     get_hashed_password,
     verify_password,
     create_access_token,
@@ -72,7 +72,7 @@ async def create_user(user: signup_data):
     if re.match(r"^[^@]+@[^@]+\.[^@]+$", user.email) is None:
         raise HTTPException(status_code=400, detail="Invalid email")
 
-    if re.match(r"^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$", user.password_hash) is None:
+    if re.match(r"^(?=.*[a-zA-Z])(?=.*\d)(?=.*[@$!%*?&]).{8,}$", user.password_hash) is None:
         raise HTTPException(
             status_code=400,
             detail="Password must be atleast 8 characters long and contain atleast one letter and one number",
@@ -169,7 +169,7 @@ async def change_password(
     if new_password is None:
         raise HTTPException(status_code=400, detail="New password not provided")
 
-    if re.match(r"^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$", new_password) is None:
+    if re.match(r"^(?=.*[a-zA-Z])(?=.*\d)(?=.*[@$!%*?&]).{8,}$", new_password) is None:
         raise HTTPException(
             status_code=400,
             detail="Password must be atleast 8 characters long and contain atleast one letter and one number",
