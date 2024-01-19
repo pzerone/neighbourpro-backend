@@ -11,9 +11,9 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from tortoise.contrib.pydantic.creator import pydantic_model_creator
 from tortoise import timezone
-from dependencies import TokenData
-from database.models import Users, Professions
-from routers.auth import get_current_user
+from app.dependencies import TokenData
+from app.database.models import Users, Professions
+from app.routers.auth import get_current_user
 
 
 class Address(BaseModel):

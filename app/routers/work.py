@@ -10,11 +10,11 @@ from fastapi import APIRouter, HTTPException, Depends
 from fastapi.responses import JSONResponse
 from tortoise.contrib.pydantic.creator import pydantic_model_creator
 from tortoise import timezone
-from database.models import Users, Professions, Works
+from app.database.models import Users, Professions, Works
 
 
-from dependencies import TokenData
-from routers.auth import get_current_user
+from app.dependencies import TokenData
+from app.routers.auth import get_current_user
 
 professionals_data = pydantic_model_creator(
     Users,

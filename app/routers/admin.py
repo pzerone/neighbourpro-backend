@@ -7,11 +7,11 @@ Author: github.com/pzerone
 
 from fastapi import APIRouter, HTTPException, Depends
 from fastapi.responses import JSONResponse
-from database.models import Professions
-from dependencies import TokenData
+from app.database.models import Professions
+from app.dependencies import TokenData
 from tortoise.contrib.pydantic.creator import pydantic_model_creator
 from tortoise import timezone
-from routers.auth import get_current_user
+from app.routers.auth import get_current_user
 
 profession_data = pydantic_model_creator(
     Professions,

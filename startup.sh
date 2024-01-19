@@ -18,13 +18,13 @@ if ! aerich upgrade > /dev/null 2>&1; then
     exit 1
 fi
 
-cd ..
+cd ../..
 
 # Determine whether to use --reload based on the command line argument
 if [ "$1" == "dev" ]; then
-    uvicorn main:app --host 0.0.0.0 --port 8000 --reload --log-level info
+    uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload --log-level info
 elif [ "$1" == "prod" ]; then
-    uvicorn main:app --host 0.0.0.0 --port 8000 --log-level info
+    uvicorn app.main:app --host 0.0.0.0 --port 8000 --log-level info
 else
     echo -e "\e[91mError: Unknown parameter. Please use 'dev' or 'prod'\e[0m" >&2
     exit 1

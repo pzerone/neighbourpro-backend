@@ -17,10 +17,10 @@ from tortoise.contrib.fastapi import register_tortoise
 from tortoise import Tortoise
 
 Tortoise.init_models(
-    ["database.models"], "models"
+    ["app.database.models"], "models"
 )  # Initialize models as soon as the app starts so that table relations are properly set up
 
-from routers import auth, work, users, admin
+from app.routers import auth, work, users, admin
 
 app = FastAPI(openapi_url="/apidocs")
 origins = ["*"]
@@ -50,7 +50,7 @@ register_tortoise(
         "connections": {"default": DB_URL},
         "apps": {
             "models": {
-                "models": ["database.models"],
+                "models": ["app.database.models"],
                 "default_connection": "default",
             },
         },
