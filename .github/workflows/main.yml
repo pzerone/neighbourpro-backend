@@ -1,0 +1,14 @@
+name: CI
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+
+  Code-Update:
+    runs-on: [self-hosted] 
+    steps:
+    - name: Update server to latest commit
+      run: | 
+        cd /home/neighbourpro/neighbourpro-backend && docker compose down && git pull && docker compose up -d --build --force-recreate
