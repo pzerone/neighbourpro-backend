@@ -11,6 +11,11 @@ fi
 # Set the migration files directory
 cd app/database
 
+# delay for 5 seconds to allow the database to start up in production.
+if ["$1" == "prod"]; then
+    sleep 5
+fi
+
 # Apply database migrations using Aerich
 # Returns early with failure if db connection fails
 if ! aerich upgrade > /dev/null 2>&1; then
