@@ -9,13 +9,10 @@ jobs:
   pull-and-run:
     runs-on: [self-hosted] 
     steps:
-    - name: Checkout
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
     - name: Update server to latest commit
       run: | 
         cd /home/neighbourpro/neighbourpro-backend &&\
         docker compose down &&\
+        git pull &&\
         docker system prune -a --force &&\
         docker compose up -d --build --force-recreate
