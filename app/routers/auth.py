@@ -72,7 +72,7 @@ async def create_user(user: signup_data):
     if re.match(r"^[^@]+@[^@]+\.[^@]+$", user.email) is None:
         raise HTTPException(status_code=400, detail="Invalid email")
 
-    if re.match(r"^(?=.*[a-zA-Z])(?=.*\d)(?=.*[@$!%*?&]).{8,}$", user.password_hash) is None:
+    if re.match(r"^(?=.*[a-zA-Z])(?=.*\d).{8,}$", user.password_hash) is None:
         raise HTTPException(
             status_code=400,
             detail="Password must be atleast 8 characters long and contain atleast one letter and one number",
@@ -169,7 +169,7 @@ async def change_password(
     if new_password is None:
         raise HTTPException(status_code=400, detail="New password not provided")
 
-    if re.match(r"^(?=.*[a-zA-Z])(?=.*\d)(?=.*[@$!%*?&]).{8,}$", new_password) is None:
+    if re.match(r"^(?=.*[a-zA-Z])(?=.*\d).{8,}$", new_password) is None:
         raise HTTPException(
             status_code=400,
             detail="Password must be atleast 8 characters long and contain atleast one letter and one number",
