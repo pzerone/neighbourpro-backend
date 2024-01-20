@@ -11,4 +11,8 @@ jobs:
     steps:
     - name: Update server to latest commit
       run: | 
-        cd /home/neighbourpro/neighbourpro-backend && docker compose down && git pull && docker compose up -d --build --force-recreate
+        cd /home/neighbourpro/neighbourpro-backend &&\
+        docker compose down &&\
+        git pull &&\
+        docker system prune --force &&\
+        docker compose up -d --build --force-recreate
