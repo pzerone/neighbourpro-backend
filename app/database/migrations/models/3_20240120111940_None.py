@@ -39,15 +39,6 @@ CREATE TABLE IF NOT EXISTS "users" (
     "modified_at" TIMESTAMPTZ NOT NULL,
     "profession_id" INT REFERENCES "professions" ("id") ON DELETE CASCADE
 );
-CREATE TABLE IF NOT EXISTS "reviews" (
-    "id" SERIAL NOT NULL PRIMARY KEY,
-    "rating" INT NOT NULL,
-    "review" TEXT,
-    "created_at" TIMESTAMPTZ NOT NULL,
-    "modified_at" TIMESTAMPTZ NOT NULL,
-    "user_id_id" INT NOT NULL REFERENCES "users" ("id") ON DELETE CASCADE,
-    "worker_id_id" INT NOT NULL REFERENCES "users" ("id") ON DELETE CASCADE
-);
 CREATE TABLE IF NOT EXISTS "works" (
     "id" SERIAL NOT NULL PRIMARY KEY,
     "tags" text[],
@@ -63,6 +54,16 @@ CREATE TABLE IF NOT EXISTS "works" (
     "assigned_to_id" INT NOT NULL REFERENCES "users" ("id") ON DELETE CASCADE,
     "booked_by_id" INT NOT NULL REFERENCES "users" ("id") ON DELETE CASCADE,
     "profession_id" INT NOT NULL REFERENCES "professions" ("id") ON DELETE CASCADE
+);
+CREATE TABLE IF NOT EXISTS "reviews" (
+    "id" SERIAL NOT NULL PRIMARY KEY,
+    "rating" INT NOT NULL,
+    "review" TEXT,
+    "created_at" TIMESTAMPTZ NOT NULL,
+    "modified_at" TIMESTAMPTZ NOT NULL,
+    "user_id" INT NOT NULL REFERENCES "users" ("id") ON DELETE CASCADE,
+    "work_id" INT NOT NULL REFERENCES "works" ("id") ON DELETE CASCADE,
+    "worker_id" INT NOT NULL REFERENCES "users" ("id") ON DELETE CASCADE
 );"""
 
 

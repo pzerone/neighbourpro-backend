@@ -104,16 +104,18 @@ class Reviews(models.Model):
     id = fields.IntField(pk=True)
     rating = fields.IntField(null=False)  # 1 to 5
     review = fields.TextField(null=True)
+    edited = fields.BooleanField(null=False, default=False)
+    work = fields.ForeignKeyField("models.Works", related_name="work", null=False)
 
     created_at = fields.DatetimeField()
     modified_at = fields.DatetimeField()
 
-    user_id: fields.ForeignKeyRelation[Users] = fields.ForeignKeyField(
+    user: fields.ForeignKeyRelation[Users] = fields.ForeignKeyField(
         "models.Users", related_name="user_id", null=False
     )
-    worker_id: fields.ForeignKeyRelation[Users] = fields.ForeignKeyField(
+    worker: fields.ForeignKeyRelation[Users] = fields.ForeignKeyField(
         "models.Users", related_name="worker_id", null=False
     )
 
     class PydanticMeta:
-        exclude = ["created_at", "modified_at", "reviewed_by", "reviewed_to"]
+        exclude = ["created_at", "modified_at", "user_id", "worker_id"]

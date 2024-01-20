@@ -10,7 +10,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from fastapi.responses import JSONResponse
 from tortoise.contrib.pydantic.creator import pydantic_model_creator
 from tortoise import timezone
-from app.database.models import Users, Professions, Works
+from app.database.models import Users, Professions, Works, Reviews
 
 
 from app.dependencies import TokenData
@@ -80,6 +80,10 @@ client_details = pydantic_model_creator(
         "Longitude",
         "phone_number",
     ),
+)
+
+review_in = pydantic_model_creator(
+    Reviews, name="Review Data Input", include=("rating", "review")
 )
 
 router = APIRouter(
@@ -350,7 +354,7 @@ async def reject_work(work_id: int, user: TokenData = Depends(get_current_user))
             status_code=400,
             detail="Work is not in pending state. Only pending works can be rejected",
         )
-    
+
     if work.scheduled_date < timezone.now().date():
         await Works.filter(id=work_id).update(
             status="expired", modified_at=timezone.now()
@@ -479,7 +483,222 @@ async def quote_final_cost(
             detail="Work is not yet in started state. Only started works can be quoted",
         )
 
-    await Works.filter(id=work_id).update(final_cost=final_cost, modified_at=timezone.now())
+    await Works.filter(id=work_id).update(
+        final_cost=final_cost, modified_at=timezone.now()
+    )
     return JSONResponse(
         content={"detail": "Final cost quoted sucessfully"}, status_code=200
+    )
+
+
+@router.post("/recieved-payment/{work_id}")
+async def recieve_payment(work_id: int, user: TokenData = Depends(get_current_user)):
+    """
+    This route is used to mark a work as payment received.
+    User must be the assigned worker of the work to access this route.
+    Payment system works in mutual agreement between a client and worker.
+
+    requires:
+    - work_id
+    """
+    try:
+        work = await Works.get(id=work_id)
+    except:
+        raise HTTPException(
+            status_code=404,
+            detail="Work id does not correspond to a valid work booking",
+        )
+
+    if work.assigned_to_id != user.id:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    if work.status != "started":
+        raise HTTPException(
+            status_code=400,
+            detail="Work is not yet in started state. Only started works can be paid for",
+        )
+
+    if work.final_cost == None:
+        raise HTTPException(
+            status_code=400,
+            detail="Final cost is not quoted for the work. Quote the final cost before marking work as paid",
+        )
+
+    if (
+        work.payment_status == "sent"
+    ):  # If payment is already in "sent" state, the client has marked it as paid.
+        await Works.filter(
+            id=work_id
+        ).update(  # Hence the worker cam mark it as received and close the work.
+            payment_status="received", status="closed", modified_at=timezone.now()
+        )
+
+    else:  # If not, the worker can only update payment status.
+        await Works.filter(id=work_id).update(
+            payment_status="received", modified_at=timezone.now()
+        )
+
+    return JSONResponse(
+        content={"detail": "Payment recieved sucessfully"}, status_code=200
+    )
+
+
+@router.post("/sent-payment/{work_id}")
+async def send_payment(work_id: int, user: TokenData = Depends(get_current_user)):
+    """
+    This route is used to mark a work as payment sent.
+    User must be the creator of the work to access this route.
+
+    requires:
+    - work_id
+    """
+    try:
+        work = await Works.get(id=work_id)
+    except:
+        raise HTTPException(
+            status_code=404,
+            detail="Work id does not correspond to a valid work booking",
+        )
+
+    if work.booked_by_id != user.id:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    if work.status != "started":
+        raise HTTPException(
+            status_code=400,
+            detail="Work is not yet in started state. Only started works can be paid for",
+        )
+
+    if work.final_cost == None:
+        raise HTTPException(
+            status_code=400,
+            detail="Final cost is not quoted for the work. Final cost must be quoted by the worker before marking work as paid",
+        )
+
+    if work.payment_status == "received":
+        await Works.filter(
+            id=work_id
+        ).update(  # If payment is already in "received" state, the worker has marked it as paid.
+            status="closed", modified_at=timezone.now()
+        )
+
+    else:  # If not, the client can only update payment status.
+        await Works.filter(id=work_id).update(
+            payment_status="sent", modified_at=timezone.now()
+        )
+
+    return JSONResponse(content={"detail": "Payment sent sucessfully"}, status_code=200)
+
+
+@router.post("/review-work/{work_id}")
+async def review_work(
+    work_id: int, review: review_in, user: TokenData = Depends(get_current_user)
+):
+    """
+    This route is used to review a work.
+    User must be the creator of the work to access this route.
+
+    requires:
+    - work_id
+    - review
+    """
+    # TODO: update the worker's average rating field
+    if len(review.review) > 500:
+        raise HTTPException(
+            status_code=400,
+            detail="Review cannot be more than 500 characters long",
+        )
+
+    if not 1 <= review.rating <= 5:
+        raise HTTPException(
+            status_code=400,
+            detail="Rating must be between 1 and 5",
+        )
+
+    try:
+        work = await Works.get(id=work_id)
+    except:
+        raise HTTPException(
+            status_code=404,
+            detail="Work id does not correspond to a valid work booking",
+        )
+
+    if work.booked_by_id != user.id:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    if work.status != "closed":
+        raise HTTPException(
+            status_code=400,
+            detail="Work is not yet in closed state. Only closed works can be reviewed",
+        )
+
+    if await Reviews.filter(work_id=work_id).exists():
+        raise HTTPException(
+            status_code=400,
+            detail="Work is already reviewed. Only works that are not reviewed can be reviewed",
+        )
+
+    await Reviews.create(
+        **review.dict(exclude_unset=True),
+        user_id=user.id,
+        work_id=work_id,
+        worker_id=work.assigned_to_id,
+        created_at=timezone.now(),
+        modified_at=timezone.now(),
+    )
+    return JSONResponse(
+        content={"detail": "Work reviewed sucessfully"}, status_code=200
+    )
+
+
+@router.put("/review-work/{work_id}")
+async def update_review(
+    work_id: int, review: review_in, user: TokenData = Depends(get_current_user)
+):
+    """
+    This route is used to update a review.
+    User must be the creator of the work to access this route.
+
+    requires:
+    - work_id
+    - review
+    """
+    if len(review.review) > 500:
+        raise HTTPException(
+            status_code=400,
+            detail="Review cannot be more than 500 characters long",
+        )
+
+    if not 1 <= review.rating <= 5:
+        raise HTTPException(
+            status_code=400,
+            detail="Rating must be between 1 and 5",
+        )
+
+    try:
+        work = await Works.get(id=work_id)
+    except:
+        raise HTTPException(
+            status_code=404,
+            detail="Work id does not correspond to a valid work booking",
+        )
+
+    if work.booked_by_id != user.id:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    try:
+        review_obj = await Reviews.get(work_id=work_id)
+    except:
+        raise HTTPException(
+            status_code=404,
+            detail="Work is not reviewed yet. Review the work first",
+        )
+
+    await Reviews.filter(id=review_obj.id).update(
+        **review.dict(exclude_unset=True),
+        edited=True,
+        modified_at=timezone.now(),
+    )
+    return JSONResponse(
+        content={"detail": "Work review updated sucessfully"}, status_code=200
     )
