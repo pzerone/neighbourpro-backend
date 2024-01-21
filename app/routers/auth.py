@@ -9,6 +9,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from fastapi.responses import JSONResponse
 from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
 from app.database.models import Users
+from app.utils.logger import msg_logger
 from tortoise.expressions import Q
 from tortoise import timezone
 import re
@@ -67,12 +68,17 @@ async def create_user(user: signup_data):
     """
     user_exists = await Users.filter(Q(username=user.username) | Q(email=user.email))
     if user_exists:
+        msg_logger(f"Registration Failed: {user.username} already exists. Registration failed.", 20)
         raise HTTPException(status_code=400, detail="User already exists")
 
     if re.match(r"^[^@]+@[^@]+\.[^@]+$", user.email) is None:
+        msg_logger(f"Registration Failed: {user.email} is not a valid email.", 20)
         raise HTTPException(status_code=400, detail="Invalid email")
 
     if re.match(r"^(?=.*[a-zA-Z])(?=.*\d).{8,}$", user.password_hash) is None:
+        msg_logger(
+            f"Registration Failed: {user.username} provided an invalid password.", 20
+        )
         raise HTTPException(
             status_code=400,
             detail="Password must be atleast 8 characters long and contain atleast one letter and one number",
@@ -83,6 +89,7 @@ async def create_user(user: signup_data):
         created_at=timezone.now(),
         modified_at=timezone.now()
     )
+    msg_logger(f"Registrtion Successful: {user.username} created successfully.", 20)
     return JSONResponse(content={"detail": "User creation sucessful"}, status_code=201)
 
 
@@ -110,11 +117,13 @@ async def login_user(form_data: OAuth2PasswordRequestForm = Depends()):
     try:
         user = await Users.get(username=form_data.username)
     except:
+        msg_logger(f"Login Failed: {form_data.username} does not exist.", 20)
         return JSONResponse(
             content={"detail": "Invalid username of password"}, status_code=401
         )
 
     if not verify_password(form_data.password, user.password_hash):
+        msg_logger(f"Login Failed: {form_data.username} provided an invalid password.", 20)
         return JSONResponse(
             content={"detail": "Invalid username of password"}, status_code=401
         )
@@ -122,6 +131,7 @@ async def login_user(form_data: OAuth2PasswordRequestForm = Depends()):
     token_data = TokenData(
         username=user.username, email=user.email, role=user.role, id=user.id
     )
+    msg_logger(f"Login Successful: {form_data.username} logged in successfully.", 20)
     return Token(
         access_token=create_access_token(token_data),
         refresh_token=create_refresh_token(token_data),
@@ -159,17 +169,23 @@ async def change_password(
     Password must be atleast 8 characters long and contain atleast one letter and one number
     """
     if old_password is None:
+        msg_logger(f"Password Change Failed: {user.username} did not provide old password.", 20)
         raise HTTPException(status_code=400, detail="Old password not provided")
 
     curr_user = await Users.get(username=user.username)
     old_hash = curr_user.password_hash
     if not verify_password(old_password, old_hash):
+        msg_logger(f"Password Change Failed: {user.username} provided an incorrect old password.", 20)
         raise HTTPException(status_code=401, detail="Incorrect old password")
 
     if new_password is None:
+        msg_logger(f"Password Change Failed: {user.username} did not provide new password.", 20)
         raise HTTPException(status_code=400, detail="New password not provided")
 
     if re.match(r"^(?=.*[a-zA-Z])(?=.*\d).{8,}$", new_password) is None:
+        msg_logger(
+            f"Password Change Failed: {user.username} provided an password that did not meet required criteria.", 20
+        )
         raise HTTPException(
             status_code=400,
             detail="Password must be atleast 8 characters long and contain atleast one letter and one number",
@@ -178,6 +194,7 @@ async def change_password(
     await Users.filter(username=user.username).update(
         password_hash=new_password, modified_at=timezone.now()
     )
+    msg_logger(f"Password Change Successful: {user.username} changed password successfully.", 20)
     return JSONResponse(
         content={"detail": "Password changed successfully"}, status_code=200
     )
