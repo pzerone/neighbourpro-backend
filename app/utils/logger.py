@@ -4,7 +4,7 @@ import logging.handlers
 console_logger = logging.getLogger("console_logger")
 
 console_logger.setLevel(logging.DEBUG)
-formatter = logging.Formatter("%(levelname)s: %(message)s")
+formatter = logging.Formatter("%(levelname)-10s%(message)s")
 console_handler = logging.StreamHandler()
 console_handler.setFormatter(formatter)
 console_logger.addHandler(console_handler)
