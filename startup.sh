@@ -8,6 +8,13 @@ if [ $# -eq 0 ]; then
     exit 1
 fi
 
+# delay for 5 seconds to allow the database to start up in production.
+# This is a temporary fix to allow the database to start up before the migration is run
+# This should be replaced with health check of docker without exposing database credentials on the compose file
+if [ "$1" == "prod" ]; then
+    sleep 5
+fi
+
 # Set the migration files directory
 cd app/database
 

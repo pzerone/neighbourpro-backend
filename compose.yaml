@@ -10,8 +10,7 @@ services:
     env_file:
       - .env
     depends_on:
-      db:
-        condition: service_healthy
+      - db
 
   db:
     container_name: db
@@ -21,11 +20,6 @@ services:
       driver: "local"
     env_file:
       - .env
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready", "-d", "${POSTGRES_DB}"]
-      interval: 10s
-      timeout: 3s
-      retries: 3
     ports:
       - "5432"
     volumes:
