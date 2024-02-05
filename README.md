@@ -34,5 +34,5 @@ This will run the server in production mode without hot reloading.
 To do that, run:
 
 ```bash
-poetry export --without-hashes --format=requrements.txt > requirements.txt
+poetry export --without-hashes --format=requirements.txt > requirements.txt
 ```
