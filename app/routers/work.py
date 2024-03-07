@@ -5,7 +5,7 @@ Description: This file contains the FastAPI router for work views.
 Author: github.com/pzerone
 """
 
-from typing import List
+from typing import TypeAlias
 from fastapi import APIRouter, HTTPException, Depends
 from fastapi.responses import JSONResponse
 from tortoise.contrib.pydantic.creator import pydantic_model_creator
@@ -16,7 +16,7 @@ from app.database.models import Users, Professions, Works, Reviews
 from app.dependencies import TokenData
 from app.routers.auth import get_current_user
 
-professionals_data = pydantic_model_creator(
+professionals_data: TypeAlias = pydantic_model_creator(
     Users,
     name="Professionals Data Output",
     include=(
@@ -29,9 +29,9 @@ professionals_data = pydantic_model_creator(
         "phone_number",
         "email",
     ),
-)
+) # type: ignore
 
-work_create_in = pydantic_model_creator(
+work_create_in: TypeAlias = pydantic_model_creator(
     Works,
     name="Create Work Data Input",
     exclude_readonly=True,
@@ -42,9 +42,9 @@ work_create_in = pydantic_model_creator(
         "booked_by_id",
         "final_cost",
     ),
-)
+) # type: ignore
 
-work_details_out = pydantic_model_creator(
+work_details_out: TypeAlias = pydantic_model_creator(
     Works,
     name="Work Details Data Output",
     include=(
@@ -63,9 +63,9 @@ work_details_out = pydantic_model_creator(
         "created_at",
         "modified_at",
     ),
-)
+) # type: ignore
 
-client_details = pydantic_model_creator(
+client_details: TypeAlias = pydantic_model_creator(
     Users,
     name="Client Details Data Output",
     include=(
@@ -80,11 +80,11 @@ client_details = pydantic_model_creator(
         "Longitude",
         "phone_number",
     ),
-)
+) # type: ignore
 
-review_in = pydantic_model_creator(
+review_in: TypeAlias = pydantic_model_creator(
     Reviews, name="Review Data Input", include=("rating", "review")
-)
+) # type: ignore
 
 router = APIRouter(
     prefix="/work",
@@ -92,7 +92,7 @@ router = APIRouter(
 )
 
 
-@router.get("/professionals/{profession_id}", response_model=List[professionals_data])
+@router.get("/professionals/{profession_id}", response_model=list[professionals_data])
 async def get_professionals(profession_id: int):
     """
     This route is used to get a list of professionals for a given profession id.
@@ -219,7 +219,7 @@ async def create_work(
     return JSONResponse(content={"detail": "Work creation sucessful"}, status_code=201)
 
 
-@router.get("/booked-works", response_model=List[work_details_out])
+@router.get("/booked-works", response_model=list[work_details_out])
 async def get_my_works(user: TokenData = Depends(get_current_user)):
     """
     This route is used to get the list of works created by the user.
@@ -230,7 +230,7 @@ async def get_my_works(user: TokenData = Depends(get_current_user)):
     return await work_details_out.from_queryset(Works.filter(booked_by_id=user.id))
 
 
-@router.get("/assigned-works", response_model=List[work_details_out])
+@router.get("/assigned-works", response_model=list[work_details_out])
 async def get_assigned_works(user: TokenData = Depends(get_current_user)):
     """
     This route is used to get the list of works assigned to the worker.

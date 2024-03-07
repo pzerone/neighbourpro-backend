@@ -5,6 +5,7 @@ Description: This file contains the FastAPI router for Auth views.
 Author: github.com/pzerone
 """
 
+from typing import TypeAlias
 from fastapi import APIRouter, HTTPException, Depends
 from fastapi.responses import JSONResponse
 from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
@@ -12,6 +13,7 @@ from app.database.models import Users
 from app.utils.logger import msg_logger
 from tortoise.expressions import Q
 from tortoise import timezone
+from tortoise.exceptions import DoesNotExist
 import re
 from app.dependencies import (
     get_hashed_password,
@@ -24,24 +26,11 @@ from app.dependencies import (
 )
 from tortoise.contrib.pydantic.creator import pydantic_model_creator
 
-signup_data = pydantic_model_creator(
+signup_data: TypeAlias = pydantic_model_creator(
     Users,
     name="User Signup Data Input",
     exclude_readonly=True,
-    exclude=(
-        "role",
-        "profession_id",
-        "hourly_rate",
-        "worker_bio",
-        "House_name",
-        "Street",
-        "City",
-        "State",
-        "Pincode",
-        "Latitude",
-        "Longitude",
-    ),
-)
+) # type: ignore
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login", scheme_name="JWT")
 
@@ -59,23 +48,25 @@ async def create_user(user: signup_data):
     requires:
     - username
     - first_name
-    - last_name
+    - last_name (optional)
     - email
-    - phone_number
     - password
 
     Password must be atleast 8 characters long and contain atleast one letter and one number
     """
     user_exists = await Users.filter(Q(username=user.username) | Q(email=user.email))
     if user_exists:
-        msg_logger(f"Registration Failed: {user.username} already exists. Registration failed.", 20)
+        msg_logger(
+            f"Registration Failed: {user.username} already exists. Registration failed.",
+            20,
+        )
         raise HTTPException(status_code=400, detail="User already exists")
 
     if re.match(r"^[^@]+@[^@]+\.[^@]+$", user.email) is None:
         msg_logger(f"Registration Failed: {user.email} is not a valid email.", 20)
         raise HTTPException(status_code=400, detail="Invalid email")
 
-    if re.match(r"^(?=.*[a-zA-Z])(?=.*\d).{8,}$", user.password_hash) is None:
+    if re.match(r"^(?=.*[a-zA-Z])(?=.*\d).{8,}$", user.password) is None:
         msg_logger(
             f"Registration Failed: {user.username} provided an invalid password.", 20
         )
@@ -83,11 +74,11 @@ async def create_user(user: signup_data):
             status_code=400,
             detail="Password must be atleast 8 characters long and contain atleast one letter and one number",
         )
-    user.password_hash = get_hashed_password(user.password_hash)
+    user.password = get_hashed_password(user.password)
     await Users.create(
         **user.dict(exclude_unset=True),
         created_at=timezone.now(),
-        modified_at=timezone.now()
+        modified_at=timezone.now(),
     )
     msg_logger(f"Registrtion Successful: {user.username} created successfully.", 20)
     return JSONResponse(content={"detail": "User creation sucessful"}, status_code=201)
@@ -116,20 +107,22 @@ async def login_user(form_data: OAuth2PasswordRequestForm = Depends()):
     """
     try:
         user = await Users.get(username=form_data.username)
-    except:
+    except DoesNotExist:
         msg_logger(f"Login Failed: {form_data.username} does not exist.", 20)
         return JSONResponse(
             content={"detail": "Invalid username of password"}, status_code=401
         )
 
-    if not verify_password(form_data.password, user.password_hash):
-        msg_logger(f"Login Failed: {form_data.username} provided an invalid password.", 20)
+    if not verify_password(form_data.password, user.password):
+        msg_logger(
+            f"Login Failed: {form_data.username} provided an invalid password.", 20
+        )
         return JSONResponse(
             content={"detail": "Invalid username of password"}, status_code=401
         )
 
     token_data = TokenData(
-        username=user.username, email=user.email, role=user.role, id=user.id
+        id=user.id, username=user.username, email=user.email, role=user.role
     )
     msg_logger(f"Login Successful: {form_data.username} logged in successfully.", 20)
     return Token(
@@ -147,8 +140,8 @@ async def get_user(user: TokenData = Depends(get_current_user)):
     returns:
     - id
     - username
-    - role
     - email
+    - role
     """
     return user
 
@@ -169,22 +162,30 @@ async def change_password(
     Password must be atleast 8 characters long and contain atleast one letter and one number
     """
     if old_password is None:
-        msg_logger(f"Password Change Failed: {user.username} did not provide old password.", 20)
+        msg_logger(
+            f"Password Change Failed: {user.username} did not provide old password.", 20
+        )
         raise HTTPException(status_code=400, detail="Old password not provided")
 
     curr_user = await Users.get(username=user.username)
-    old_hash = curr_user.password_hash
+    old_hash = curr_user.password
     if not verify_password(old_password, old_hash):
-        msg_logger(f"Password Change Failed: {user.username} provided an incorrect old password.", 20)
+        msg_logger(
+            f"Password Change Failed: {user.username} provided an incorrect old password.",
+            20,
+        )
         raise HTTPException(status_code=401, detail="Incorrect old password")
 
     if new_password is None:
-        msg_logger(f"Password Change Failed: {user.username} did not provide new password.", 20)
+        msg_logger(
+            f"Password Change Failed: {user.username} did not provide new password.", 20
+        )
         raise HTTPException(status_code=400, detail="New password not provided")
 
     if re.match(r"^(?=.*[a-zA-Z])(?=.*\d).{8,}$", new_password) is None:
         msg_logger(
-            f"Password Change Failed: {user.username} provided an password that did not meet required criteria.", 20
+            f"Password Change Failed: {user.username} provided an password that did not meet required criteria.",
+            20,
         )
         raise HTTPException(
             status_code=400,
@@ -192,9 +193,12 @@ async def change_password(
         )
     new_password = get_hashed_password(new_password)
     await Users.filter(username=user.username).update(
-        password_hash=new_password, modified_at=timezone.now()
+        password=new_password, modified_at=timezone.now()
     )
-    msg_logger(f"Password Change Successful: {user.username} changed password successfully.", 20)
+    msg_logger(
+        f"Password Change Successful: {user.username} changed password successfully.",
+        20,
+    )
     return JSONResponse(
         content={"detail": "Password changed successfully"}, status_code=200
     )

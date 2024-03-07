@@ -5,16 +5,11 @@ Description: This file contains the main FastAPI app of NeighbourPro backend.
 Author: github.com/pzerone
 """
 
-import os
-from dotenv import load_dotenv
-
-load_dotenv()
-DB_URL = os.environ["DB_URL"]
-
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from tortoise.contrib.fastapi import register_tortoise
 from tortoise import Tortoise
+from app.database.settings import TORTOISE_ORM
 
 Tortoise.init_models(
     ["app.database.models"], "models"
@@ -26,8 +21,8 @@ app = FastAPI(openapi_url="/apidocs")
 origins = ["*"]
 
 app.include_router(auth.router)
-app.include_router(work.router)
 app.include_router(users.router)
+app.include_router(work.router)
 app.include_router(admin.router)
 app.add_middleware(
     CORSMiddleware,
@@ -46,17 +41,6 @@ async def root():
 
 register_tortoise(
     app,
-    config={
-        "connections": {"default": DB_URL},
-        "apps": {
-            "models": {
-                "models": ["app.database.models"],
-                "default_connection": "default",
-            },
-        },
-        # Refer: https://tortoise.github.io/timezone.html
-        "use_tz": False, # If True, then the datetime fields will be timezone aware (UTC)
-        "timezone": "UTC", # Make Tortoise aware which timezone database is using
-    },
+    config=TORTOISE_ORM,
     add_exception_handlers=True,
 )
