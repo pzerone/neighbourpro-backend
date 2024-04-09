@@ -15,9 +15,6 @@ if [ "$1" == "prod" ]; then
     sleep 5
 fi
 
-# Set the migration files directory
-cd app/database
-
 # Apply database migrations using Aerich
 # Returns early with failure if db connection fails
 echo -e "\e[92mApplying database migrations:\e[0m aerich upgrade"
@@ -25,8 +22,6 @@ if ! aerich upgrade > /dev/null 2>&1; then
     echo -e "\e[91mError: Database migration failed. Check if the database is up and running\e[0m" >&2
     exit 1
 fi
-
-cd ../..
 
 # Determine whether to use --reload based on the command line argument
 if [ "$1" == "dev" ]; then

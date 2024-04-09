@@ -11,6 +11,13 @@ console_logger.addHandler(console_handler)
 
 
 def msg_logger(message: str, level: int) -> None:
+    """
+    Levels:
+    - 10: DEBUG
+    - 20: INFO
+    - 30: WARNING
+    - 40: ERROR
+    """
     levels = (10, 20, 30, 40)
     if level not in levels:
         raise ValueError("invalid log level")

@@ -5,25 +5,29 @@ Description: This file contains the FastAPI router for user views.
 Author: github.com/pzerone
 """
 
-from typing import List
+from typing import TypeAlias
 from fastapi import APIRouter, HTTPException, Depends
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
-from tortoise.contrib.pydantic.creator import pydantic_model_creator
 from tortoise import timezone
+from tortoise.transactions import in_transaction
+from tortoise.contrib.pydantic.creator import pydantic_model_creator
+from tortoise.exceptions import DoesNotExist, OperationalError
 from app.dependencies import TokenData
-from app.database.models import Users, Professions
+from app.database.models import Users, UserDetails, WorkerDetails, Professions
 from app.routers.auth import get_current_user
+from app.utils.logger import msg_logger
 
 
 class Address(BaseModel):
-    House_name: str
-    Street: str | None
-    City: str
-    State: str
-    Pincode: int
-    Latitude: float
-    Longitude: float
+    house_name: str
+    street: str | None
+    city: str
+    state: str
+    pincode: int
+    phone_number: str
+    latitude: float
+    longitude: float
 
 
 class WorkerUpgrade(BaseModel):
@@ -32,11 +36,11 @@ class WorkerUpgrade(BaseModel):
     worker_bio: str
 
 
-professions_data = pydantic_model_creator(
+professions_data: TypeAlias = pydantic_model_creator(
     Professions,
-    name="profession_data_input",
-    include=("id", "name", "description", "estimated_time_hours"),
-)
+    name="profession_data_output",
+    exclude_readonly=True,
+) # type: ignore
 
 router = APIRouter(
     prefix="/users",
@@ -44,7 +48,7 @@ router = APIRouter(
 )
 
 
-@router.put("/update-address")
+@router.post("/address")
 async def add_address(
     user: TokenData = Depends(get_current_user), address: Address = None
 ):
@@ -53,7 +57,8 @@ async def add_address(
     booking a work, etc.
 
     requires:
-    - House_name
+    - Phone number
+    - House name
     - Street
     - City
     - State
@@ -64,14 +69,10 @@ async def add_address(
     if address is None:
         raise HTTPException(status_code=400, detail="Address not provided")
 
-    await Users.filter(username=user.username).update(
-        House_name=address.House_name,
-        Street=address.Street,
-        City=address.City,
-        State=address.State,
-        Pincode=address.Pincode,
-        Latitude=address.Latitude,
-        Longitude=address.Longitude,
+    await UserDetails.create(
+        user_id=user.id,
+        **address.model_dump(exclude_unset=True),
+        created_at=timezone.now(),
         modified_at=timezone.now(),
     )
     return JSONResponse(
@@ -79,7 +80,38 @@ async def add_address(
     )
 
 
-@router.get("/professions", response_model=List[professions_data])
+@router.put("/address")
+async def update_address(address: Address, user: TokenData = Depends(get_current_user)):
+    """
+    This route is used to update the address of a user.
+
+    requires:
+    - Phone number
+    - House name
+    - Street
+    - City
+    - State
+    - Pincode
+    - Latitude
+    - Longitude
+    """
+    try:
+        await UserDetails.get(user_id=user.id)
+    except DoesNotExist:
+        raise HTTPException(
+            status_code=400,
+            detail="User does not have valid address. Please add an address first.",
+        )
+    await UserDetails.filter(user_id=user.id).update(
+        **address.model_dump(exclude_unset=True), modified_at=timezone.now()
+    )
+
+    return JSONResponse(
+        content={"detail": "Address updated successfully"}, status_code=200
+    )
+
+
+@router.get("/professions", response_model=list[professions_data])
 async def get_professions():
     """
     This route is used to get all the professions available in the database.
@@ -101,7 +133,7 @@ async def get_profession(profession_id: int):
         profession = await professions_data.from_queryset_single(
             Professions.get(id=profession_id)
         )
-    except:
+    except DoesNotExist:
         raise HTTPException(status_code=400, detail="Profession does not exist")
     return profession
 
@@ -130,21 +162,39 @@ async def switch_to_professional(
             status_code=400, detail="Hourly rate must be greater than 0"
         )
 
-    curr_user = await Users.filter(username=user.username).first()
-    if curr_user.House_name is None:
-        raise HTTPException(status_code=400, detail="User does not have valid address")
+    try:
+        await UserDetails.get(user_id=user.id)
+    except DoesNotExist:
+        raise HTTPException(
+            status_code=400,
+            detail="User does not have valid address. Please add an address first.",
+        )
 
     profession_exists = await Professions.filter(id=details.profession_id)
     if not profession_exists:
         raise HTTPException(status_code=400, detail="Profession does not exist")
 
-    await Users.filter(username=user.username).update(
-        profession_id=details.profession_id,
-        role="worker",
-        hourly_rate=details.hourly_rate,
-        worker_bio=details.worker_bio,
-        modified_at=timezone.now(),
-    )
+    try:
+        async with in_transaction() as conn:
+            await Users.filter(id=user.id).using_db(conn).update(role="worker")
+            await WorkerDetails.create(
+                using_db=conn,
+                user_id=user.id,
+                profession_id=details.profession_id,
+                hourly_rate=details.hourly_rate,
+                worker_bio=details.worker_bio,
+                created_at=timezone.now(),
+                modified_at=timezone.now(),
+            )
+    except OperationalError as e:
+        msg_logger(
+            f"Switch to professional failed: {user.username} failed to switch to professional due to database error.\n{e}",
+            40,
+        )
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to switch to professional. Please try again later.",
+        )
     return JSONResponse(
         content={"detail": "switched to professional succesfully"}, status_code=200
     )

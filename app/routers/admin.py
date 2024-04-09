@@ -5,6 +5,7 @@ Description: This file contains the FastAPI router for admin views.
 Author: github.com/pzerone
 """
 
+from typing import Optional, TypeAlias
 from fastapi import APIRouter, HTTPException, Depends
 from fastapi.responses import JSONResponse
 from app.database.models import Professions
@@ -13,12 +14,15 @@ from tortoise.contrib.pydantic.creator import pydantic_model_creator
 from tortoise import timezone
 from app.routers.auth import get_current_user
 
-profession_data = pydantic_model_creator(
+profession_data: TypeAlias = pydantic_model_creator(
     Professions,
     name="profession_data_input",
-    exclude_readonly=True,
-    include=("name", "description", "estimated_time_hours"),
-)
+    include=(
+        "name",
+        "description",
+        "estimated_time_hours",
+        )
+)  # type: ignore
 
 router = APIRouter(
     prefix="/admin",
@@ -43,14 +47,18 @@ async def add_profession(
         raise HTTPException(status_code=401, detail="Unauthorized")
 
     if profession is None:
-        raise HTTPException(status_code=400, detail="Profession not provided")
+        raise HTTPException(status_code=400, detail="Profession details not provided")
 
     profession_exists = await Professions.filter(name=profession.name)
     if profession_exists:
         raise HTTPException(status_code=400, detail="Profession already exists")
 
     await Professions.create(
-        **profession.model_dump(), created_at=timezone.now(), modified_at=timezone.now()
+        **profession.model_dump(),
+        created_at=timezone.now(),
+        modified_at=timezone.now(),
+        created_by_id=user.id,
+        modified_by_id=user.id
     )
     return JSONResponse(
         content={"detail": "Profession added successfully"}, status_code=201
@@ -61,7 +69,7 @@ async def add_profession(
 async def update_profession(
     user: TokenData = Depends(get_current_user),
     profession: profession_data = None,
-    profession_id: int = None,
+    profession_id: Optional[int] = None,
 ):
     """
     This route is used to update a profession - only for admin.
@@ -76,14 +84,14 @@ async def update_profession(
         raise HTTPException(status_code=401, detail="Unauthorized")
 
     if profession_id is None:
-        raise HTTPException(status_code=400, detail="Profession not provided")
+        raise HTTPException(status_code=400, detail="Profession details not provided")
 
     profession_exists = await Professions.filter(id=profession_id)
     if not profession_exists:
         raise HTTPException(status_code=400, detail="Profession does not exist")
 
     await Professions.filter(id=profession_id).update(
-        **profession.model_dump(), modified_at=timezone.now()
+        **profession.model_dump(), modified_at=timezone.now(), modified_by_id=user.id
     )
     return JSONResponse(
         content={"detail": "Profession updated successfully"}, status_code=201
@@ -92,7 +100,7 @@ async def update_profession(
 
 @router.delete("/profession/{profession_id}")
 async def delete_profession(
-    user: TokenData = Depends(get_current_user), profession_id: int = None
+    user: TokenData = Depends(get_current_user), profession_id: Optional[int] = None
 ):
     """
     This route is used to delete a profession - only for admin.
@@ -104,7 +112,7 @@ async def delete_profession(
         raise HTTPException(status_code=401, detail="Unauthorized")
 
     if profession_id is None:
-        raise HTTPException(status_code=400, detail="Profession not provided")
+        raise HTTPException(status_code=400, detail="Profession id not provided")
 
     profession_exists = await Professions.filter(id=profession_id)
     if not profession_exists:
