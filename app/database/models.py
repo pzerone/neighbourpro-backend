@@ -77,7 +77,7 @@ class Professions(models.Model):
     )
 
     class PydanticMeta:
-        exclude = ["id", "created_at", "modified_at", "created_by_id", "modified_by_id"]
+        exclude = ["id", "created_at", "modified_at", "created_by", "modified_by"]
 
 
 class Works(models.Model):
@@ -85,7 +85,7 @@ class Works(models.Model):
     tags = ArrayField(null=True, element_type="text")
     user_description = fields.TextField(null=True)
     profession: fields.ForeignKeyRelation[Professions] = fields.ForeignKeyField(
-        "models.Professions", related_name="profession_type", null=False
+        "models.Professions", related_name="work_history", null=False
     )
     scheduled_date = fields.DateField(null=False)
     scheduled_time = fields.TimeField(null=False)

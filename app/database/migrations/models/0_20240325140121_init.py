@@ -46,12 +46,12 @@ CREATE TABLE IF NOT EXISTS "userdetails" (
 );
 CREATE TABLE IF NOT EXISTS "workerdetails" (
     "id" SERIAL NOT NULL PRIMARY KEY,
-    "profession" VARCHAR(20) NOT NULL,
     "avg_rating" DOUBLE PRECISION NOT NULL  DEFAULT 0,
     "hourly_rate" DOUBLE PRECISION NOT NULL,
     "worker_bio" TEXT NOT NULL,
     "created_at" TIMESTAMPTZ NOT NULL,
     "modified_at" TIMESTAMPTZ NOT NULL,
+    "profession_id" INT NOT NULL REFERENCES "professions" ("id") ON DELETE CASCADE,
     "user_id" INT NOT NULL REFERENCES "users" ("id") ON DELETE CASCADE
 );
 CREATE TABLE IF NOT EXISTS "works" (

@@ -5,7 +5,7 @@ Description: This file contains the FastAPI router for admin views.
 Author: github.com/pzerone
 """
 
-from typing import TypeAlias
+from typing import Optional, TypeAlias
 from fastapi import APIRouter, HTTPException, Depends
 from fastapi.responses import JSONResponse
 from app.database.models import Professions
@@ -17,8 +17,12 @@ from app.routers.auth import get_current_user
 profession_data: TypeAlias = pydantic_model_creator(
     Professions,
     name="profession_data_input",
-    exclude_readonly=True,
-) # type: ignore
+    include=(
+        "name",
+        "description",
+        "estimated_time_hours",
+        )
+)  # type: ignore
 
 router = APIRouter(
     prefix="/admin",
@@ -65,7 +69,7 @@ async def add_profession(
 async def update_profession(
     user: TokenData = Depends(get_current_user),
     profession: profession_data = None,
-    profession_id: int = None,
+    profession_id: Optional[int] = None,
 ):
     """
     This route is used to update a profession - only for admin.
@@ -96,7 +100,7 @@ async def update_profession(
 
 @router.delete("/profession/{profession_id}")
 async def delete_profession(
-    user: TokenData = Depends(get_current_user), profession_id: int = None
+    user: TokenData = Depends(get_current_user), profession_id: Optional[int] = None
 ):
     """
     This route is used to delete a profession - only for admin.

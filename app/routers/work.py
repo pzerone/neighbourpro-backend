@@ -9,10 +9,9 @@ from typing import TypeAlias
 from fastapi import APIRouter, HTTPException, Depends
 from fastapi.responses import JSONResponse
 from tortoise.contrib.pydantic.creator import pydantic_model_creator
+from tortoise.exceptions import DoesNotExist
 from tortoise import timezone
-from app.database.models import Users, Professions, Works, Reviews
-
-
+from app.database.models import UserDetails, Users, Professions, WorkerDetails, Works, Reviews
 from app.dependencies import TokenData
 from app.routers.auth import get_current_user
 
@@ -21,28 +20,25 @@ professionals_data: TypeAlias = pydantic_model_creator(
     name="Professionals Data Output",
     include=(
         "id",
-        "username",
         "first_name",
         "last_name",
-        "hourly_rate",
-        "worker_bio",
-        "phone_number",
-        "email",
-    ),
-) # type: ignore
+        "worker",
+        )
+)  # type: ignore
 
 work_create_in: TypeAlias = pydantic_model_creator(
     Works,
     name="Create Work Data Input",
     exclude_readonly=True,
-    exclude=(
-        "status",
-        "payment_status",
-        "estimated_cost",
-        "booked_by_id",
-        "final_cost",
-    ),
-) # type: ignore
+    include=(
+        "tags",
+        "user_description",
+        "profession_id",
+        "scheduled_date",
+        "scheduled_time",
+        "assigned_to_id"
+        )
+)  # type: ignore
 
 work_details_out: TypeAlias = pydantic_model_creator(
     Works,
@@ -63,7 +59,7 @@ work_details_out: TypeAlias = pydantic_model_creator(
         "created_at",
         "modified_at",
     ),
-) # type: ignore
+)  # type: ignore
 
 client_details: TypeAlias = pydantic_model_creator(
     Users,
@@ -80,11 +76,11 @@ client_details: TypeAlias = pydantic_model_creator(
         "Longitude",
         "phone_number",
     ),
-) # type: ignore
+)  # type: ignore
 
 review_in: TypeAlias = pydantic_model_creator(
     Reviews, name="Review Data Input", include=("rating", "review")
-) # type: ignore
+)  # type: ignore
 
 router = APIRouter(
     prefix="/work",
@@ -108,30 +104,25 @@ async def get_professionals(profession_id: int):
     # TODO: Use filtering algorithm for finding professionals.
     # TODO: Add pagination.
     return await professionals_data.from_queryset(
-        Users.filter(profession=profession_id)
+        Users.filter(worker__profession__id=profession_id)
     )
 
 
 @router.get("/estimated-cost/{worker_id}")
 async def get_estimated_cost(worker_id: int):
     """
-    This route is used to get the estimated cost for a given worker id.
+    This route is used to get the estimated cost for a given worker.
 
     requires:
-    - worker_id
+    - Worker's user_id
 
     returns:
     - estimated_cost
     """
     try:
-        worker = await Users.get(id=worker_id)
+        worker = await WorkerDetails.get(user__id=worker_id)
     except:
         raise HTTPException(status_code=404, detail="Professional does not exist")
-
-    if worker.role != "worker":
-        raise HTTPException(
-            status_code=400, detail="Provided worker id does not correspond to a worker"
-        )
 
     # fetch_related() is used to fetch the profession of the worker as it is a foreign key
     # and then we can use the profession to get the estimated time for the profession from db
@@ -158,7 +149,9 @@ async def create_work(
     - scheduled_time
     """
     current_user = await Users.get(id=user.id)
-    if not current_user.Latitude or not current_user.Longitude:
+    try:
+        await UserDetails.get(user__id=current_user.id)
+    except DoesNotExist:
         raise HTTPException(
             status_code=400, detail="User does not have valid address to create a work"
         )
@@ -172,14 +165,9 @@ async def create_work(
         raise HTTPException(status_code=400, detail="User cannot self assign work")
 
     try:
-        booked_worker = await Users.get(id=work.assigned_to_id)
+        booked_worker = await WorkerDetails.get(user__id=work.assigned_to_id)
     except:
         raise HTTPException(status_code=404, detail="Professional does not exist")
-
-    if booked_worker.role != "worker":
-        raise HTTPException(
-            status_code=400, detail="selected user is not a professional"
-        )
 
     await booked_worker.fetch_related("profession")
     if booked_worker.profession.id != work.profession_id:
