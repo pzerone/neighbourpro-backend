@@ -15,7 +15,6 @@ Dockerfile
 
 # Env
 env.sample
-pyproject.toml
 Poetry.lock
 
 # VS Code
