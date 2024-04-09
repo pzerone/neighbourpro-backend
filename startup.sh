@@ -18,7 +18,7 @@ fi
 # Apply database migrations using Aerich
 # Returns early with failure if db connection fails
 echo -e "\e[92mApplying database migrations:\e[0m aerich upgrade"
-if ! aerich upgrade > /dev/null 2>&1; then
+if ! aerich upgrade; then
     echo -e "\e[91mError: Database migration failed. Check if the database is up and running\e[0m" >&2
     exit 1
 fi
