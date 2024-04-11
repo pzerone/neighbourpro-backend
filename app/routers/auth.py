@@ -57,7 +57,7 @@ async def create_user(user: signup_data):
     user_exists = await Users.filter(Q(username=user.username) | Q(email=user.email))
     if user_exists:
         msg_logger(
-            f"Registration Failed: {user.username} already exists. Registration failed.",
+            f"Registration Failed: {user.username} or {user.email} already exists. Registration failed.",
             20,
         )
         raise HTTPException(status_code=400, detail="User already exists")
