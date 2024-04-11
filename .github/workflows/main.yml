@@ -13,5 +13,6 @@ jobs:
       run: | 
         cd /home/neighbourpro/neighbourpro-backend &&\
         docker compose down &&\
+        docker system prune -a --force &&\
         git pull &&\
         docker compose up -d --build --force-recreate

@@ -201,7 +201,7 @@ async def switch_to_professional(
 
 
 @router.get("/recommend")
-async def get_recommendations(user: TokenData = Depends(get_current_user)):
+async def get_recommendations():
     """
     This route is used to get recommended professions for a user. Uses collaborative filtering.
     """
