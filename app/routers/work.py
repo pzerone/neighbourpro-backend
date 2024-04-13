@@ -671,7 +671,7 @@ async def update_review(
             detail="Work id does not correspond to a valid work booking",
         )
 
-    if work.booked_by_id != user.id:
+    if work.booked_by != user.id:
         raise HTTPException(status_code=401, detail="Unauthorized")
 
     try:
