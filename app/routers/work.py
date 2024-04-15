@@ -10,10 +10,19 @@ from fastapi import APIRouter, HTTPException, Depends
 from fastapi.responses import JSONResponse
 from tortoise.contrib.pydantic.creator import pydantic_model_creator
 from tortoise.exceptions import DoesNotExist
+from tortoise.functions import Avg
 from tortoise import timezone
-from app.database.models import UserDetails, Users, Professions, WorkerDetails, Works, Reviews
+from app.database.models import (
+    UserDetails,
+    Users,
+    Professions,
+    WorkerDetails,
+    Works,
+    Reviews,
+)
 from app.dependencies import TokenData
 from app.routers.auth import get_current_user
+from app.utils.score import sort_workers_by_score
 
 professionals_data: TypeAlias = pydantic_model_creator(
     Users,
@@ -23,7 +32,8 @@ professionals_data: TypeAlias = pydantic_model_creator(
         "first_name",
         "last_name",
         "worker",
-        )
+        "user",
+    ),
 )  # type: ignore
 
 work_create_in: TypeAlias = pydantic_model_creator(
@@ -36,8 +46,8 @@ work_create_in: TypeAlias = pydantic_model_creator(
         "profession_id",
         "scheduled_date",
         "scheduled_time",
-        "assigned_to_id"
-        )
+        "assigned_to_id",
+    ),
 )  # type: ignore
 
 work_details_out: TypeAlias = pydantic_model_creator(
@@ -86,6 +96,40 @@ router = APIRouter(
     prefix="/work",
     tags=["Work"],
 )
+
+
+@router.get("/professionals/{profession_id}/filter")
+async def filter_professionals(
+    profession_id: int, user: TokenData = Depends(get_current_user)
+):
+    try:
+        await Professions.get(id=profession_id)
+    except DoesNotExist:
+        raise HTTPException(status_code=404, detail="Profession does not exist")
+
+    professionals = await professionals_data.from_queryset(
+        Users.filter(worker__profession__id=profession_id)
+    )
+
+    mean_hourly_rate = (
+        await WorkerDetails.filter(profession_id=profession_id)
+        .annotate(avg_hourly_rate=Avg("hourly_rate"))
+        .values_list("avg_hourly_rate", flat=True)
+    )[0]
+
+    try:
+        curr_user = await UserDetails.get(user_id=user.id)
+    except DoesNotExist:
+        raise HTTPException(
+            status_code=500,
+            detail="User not in database. You should't have hit this, yet here you are.",
+        )
+    user_cords = (curr_user.latitude, curr_user.longitude)
+    return await sort_workers_by_score(
+            workers=professionals,
+            user_cords=user_cords,
+            mean_hourly_rate=mean_hourly_rate,
+        )
 
 
 @router.get("/professionals/{profession_id}", response_model=list[professionals_data])

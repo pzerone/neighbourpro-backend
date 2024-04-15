@@ -1,52 +1,86 @@
+import os
+from geopy.distance import geodesic
 import numpy as np
+from app.database.models import Reviews
+
+weights = {
+    "distance": float(os.environ["DISTANCE_WEIGHT"]),
+    "review_count": float(os.environ["REVIEW_COUNT_WEIGHT"]),
+    "cost": float(os.environ["COST_WEIGHT"]),
+    "rating": float(os.environ["RATING_WEIGHT"]),
+}
 
 
-def calculate_distance(cord1: tuple, cord2: tuple) -> float:
-    return 1.2
-
-
-def calculate_score(distance: float, rating: float, num_reviews: int, service_cost:float, cost_range, weights):
+def calculate_score(
+    distance: float,
+    rating: float,
+    review_count: int,
+    hourly_cost: float,
+    mean_hourly_cost_other: float,
+    weights: dict,
+) -> float:
     """
-    Calculate the score for a job worker based on distance, rating, and service cost.
+    Calculate the score for a worker based on various factors.
 
-    Parameters:
-    - distance (float): Distance from the user.
-    - rating (float): Rating of the worker.
-    - num_reviews (int): Number of reviews for the worker.
-    - service_cost (float): Service cost of the worker.
-    - cost_range (tuple): Range of costs for workers of the same profession (min_cost, max_cost).
-    - weights (dict): Dictionary containing weights for distance, rating, and service cost (w_D, w_R, w_C).
+    Args:
+    - distance: Distance between the worker and the user (in meters)
+    - rating: Average rating of the worker from previous bookings
+    - review_count: Number of reviews that made up the average rating
+    - hourly_cost: Hourly cost of the worker
+    - mean_hourly_cost_other: Mean hourly cost of other workers in the same profession
+    - weights: Dictionary containing weights for each factor
 
     Returns:
-    - score (float): Calculated score for the job worker.
+    - score: Calculated score for the worker
     """
-    # Unpack weights
-    w_D = weights.get("w_D", 1.0)
-    w_R = weights.get("w_R", 1.0)
-    w_C = weights.get("w_C", 1.0)
-
-    # Non-linear decay function for distance
-    distance_score = w_D * np.log(distance + 1)  # Example: Logarithmic decay
-
-    # Handling edge cases for rating and number of reviews
-    k = 1  # Smoothing factor
-    rating_score = w_R * (rating * num_reviews / (num_reviews + k))
-
-    # Service cost comparison within the range
-    min_cost, max_cost = cost_range
-    cost_diff = np.abs(service_cost - ((min_cost + max_cost) / 2))
-    cost_range_score = w_C * (1 - cost_diff / (max_cost - min_cost))
-
-    # Calculate total score
-    score = distance_score + rating_score + cost_range_score
-
+    if distance > 0:
+        distance_factor = weights["distance"] / np.square(distance)
+    else:
+        distance_factor = 0
+    if review_count > 0:
+        review_count_factor = weights['review_count'] / np.sqrt(review_count)
+    else:
+        review_count_factor = 0
+    cost_factor = weights["cost"] * (mean_hourly_cost_other / hourly_cost)
+    score = (
+        weights["rating"] * rating + review_count_factor + cost_factor + distance_factor
+    )
     return score
 
 
-# Example usage:
-distance = 5.0
-rating = 4.5
-num_reviews = 20
-service_cost = 30.0
-cost_range = (25.0, 35.0)
-weights = {"w_D": 0.5, "w_R": 0.3, "w_C": 0.2}
+async def get_review_count(worker_id: int):
+    return await Reviews.filter(worker_id=worker_id).count()
+
+
+def calulate_distane_in_km(cords_1: tuple, cords_2: tuple) -> float:
+    return geodesic(cords_1, cords_2).kilometers
+
+
+async def sort_workers_by_score(
+    workers: list, user_cords: tuple, mean_hourly_rate: float
+):
+    sorted_workers = []
+    for worker in workers:
+        worker_dict = worker.model_dump()
+        worker_avg_rating = worker_dict.get("worker")[0].get("avg_rating")
+        worker_review_count = await get_review_count(worker_dict.get("id"))
+        worker_hourly_rate = worker_dict.get("worker")[0].get("hourly_rate")
+        worker_cords = (
+            float(
+                worker_dict.get("user")[0].get("latitude")
+            ),  # why did the serializer put the json inside a list when there is nothing else there
+            float(worker_dict.get("user")[0].get("longitude")),
+        )
+        distance_to_user = calulate_distane_in_km(user_cords, worker_cords)
+        score =  calculate_score(
+            distance_to_user,
+            worker_avg_rating,
+            worker_review_count,
+            worker_hourly_rate,
+            mean_hourly_rate,
+            weights
+        )
+        worker_dict["score"] = score
+        if 'user' in worker_dict: del worker_dict['user']
+        sorted_workers.append(worker_dict)
+    return sorted_workers
