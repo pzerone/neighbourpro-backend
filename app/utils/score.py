@@ -81,6 +81,7 @@ async def sort_workers_by_score(
             weights
         )
         worker_dict["score"] = score
+        worker_dict["distance_to_user_in_km"] = distance_to_user
         if 'user' in worker_dict: del worker_dict['user']
         sorted_workers.append(worker_dict)
     return sorted_workers
