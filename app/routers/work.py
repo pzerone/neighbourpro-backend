@@ -126,10 +126,10 @@ async def filter_professionals(
         )
     user_cords = (curr_user.latitude, curr_user.longitude)
     return await sort_workers_by_score(
-            workers=professionals,
-            user_cords=user_cords,
-            mean_hourly_rate=mean_hourly_rate,
-        )
+        workers=professionals,
+        user_cords=user_cords,
+        mean_hourly_rate=mean_hourly_rate,
+    )
 
 
 @router.get("/professionals/{profession_id}", response_model=list[professionals_data])

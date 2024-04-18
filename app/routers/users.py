@@ -14,9 +14,10 @@ from tortoise.transactions import in_transaction
 from tortoise.contrib.pydantic.creator import pydantic_model_creator
 from tortoise.exceptions import DoesNotExist, OperationalError
 from app.dependencies import TokenData
-from app.database.models import Users, UserDetails, WorkerDetails, Professions
+from app.database.models import Users, UserDetails, WorkerDetails, Professions, Works
 from app.routers.auth import get_current_user
 from app.utils.logger import msg_logger
+from app.utils.recommend import dict_to_pd_df, get_top_n_recommendations
 
 
 class Address(BaseModel):
@@ -40,7 +41,14 @@ professions_data: TypeAlias = pydantic_model_creator(
     Professions,
     name="profession_data_output",
     exclude_readonly=True,
-) # type: ignore
+)  # type: ignore
+
+works_history: TypeAlias = pydantic_model_creator(
+    Works,
+    name="work_history_output",
+    include=("profession_id", "booked_by_id"),
+)  # type ignore
+
 
 router = APIRouter(
     prefix="/users",
@@ -214,3 +222,27 @@ async def get_recommendations():
         "recommendations": professions,
         "Based on your recent activity": professions,
     }
+
+
+@router.get("/recommend/v2")
+async def get_real_recommendations(user: TokenData = Depends(get_current_user)):
+    try:
+        await Works.get(booked_by_id=user.id)
+    except DoesNotExist:  # If the current user does not have any previous booking history, return all professions
+        # and let frontend show random professions
+        professions = await professions_data.from_queryset(Professions.all())
+        return {
+            "recomendations": professions,
+            "Based on your recent activity": professions,
+        }
+    past_works_pydantic = await works_history.from_queryset(Works.all())
+    work_history_list_of_dict = [item.dict() for item in past_works_pydantic]
+
+    user_id_list = await Users.all().values_list("id", flat=True)
+    profession_id_list = await Professions.all().values_list("id", flat=True)
+    history_df = dict_to_pd_df(
+        work_history_list_of_dict, profession_id_list, user_id_list
+    )
+
+    top_n_recommendations = get_top_n_recommendations(history_df, user.id, 5)
+    return top_n_recommendations

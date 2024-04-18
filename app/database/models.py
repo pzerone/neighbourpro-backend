@@ -77,7 +77,7 @@ class Professions(models.Model):
     )
 
     class PydanticMeta:
-        exclude = ["id", "created_at", "modified_at", "created_by", "modified_by"]
+        exclude = ["created_at", "modified_at", "created_by", "modified_by"]
 
 
 class Works(models.Model):

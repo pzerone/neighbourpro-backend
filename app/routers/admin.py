@@ -8,7 +8,7 @@ Author: github.com/pzerone
 from typing import Optional, TypeAlias
 from fastapi import APIRouter, HTTPException, Depends
 from fastapi.responses import JSONResponse
-from app.database.models import Professions
+from app.database.models import Professions, Works
 from app.dependencies import TokenData
 from tortoise.contrib.pydantic.creator import pydantic_model_creator
 from tortoise import timezone
@@ -21,7 +21,7 @@ profession_data: TypeAlias = pydantic_model_creator(
         "name",
         "description",
         "estimated_time_hours",
-        )
+    ),
 )  # type: ignore
 
 router = APIRouter(
@@ -58,7 +58,7 @@ async def add_profession(
         created_at=timezone.now(),
         modified_at=timezone.now(),
         created_by_id=user.id,
-        modified_by_id=user.id
+        modified_by_id=user.id,
     )
     return JSONResponse(
         content={"detail": "Profession added successfully"}, status_code=201
@@ -122,3 +122,11 @@ async def delete_profession(
     return JSONResponse(
         content={"detail": "Profession deleted successfully"}, status_code=200
     )
+
+
+@router.get("/work/history")
+async def list_work_history(user: TokenData = Depends(get_current_user)):
+    if user.role != "admin":
+        raise HTTPException(status_code=400, detail="Unauthorized")
+
+    return await works_history.from_queryset(Works.all().only("profession_id", "booked_by_id"))

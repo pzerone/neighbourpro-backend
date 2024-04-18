@@ -1,0 +1,3 @@
+[submodule "Surprise"]
+	path = Surprise
+	url = https://github.com/NicolasHug/Surprise.git
