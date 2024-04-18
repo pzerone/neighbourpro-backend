@@ -15,4 +15,5 @@ jobs:
         docker compose down &&\
         docker image prune -a --force &&\
         git pull &&\
+        git submodule update --init --recursive &&
         docker compose up -d --build --force-recreate
