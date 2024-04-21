@@ -220,7 +220,7 @@ async def get_recommendations():
     professions = await professions_data.from_queryset(Professions.all())
     return {
         "recommendations": professions,
-        "Based on your recent activity": professions,
+        "based on your recent activity": professions,
     }
 
 
@@ -233,7 +233,8 @@ async def get_real_recommendations(user: TokenData = Depends(get_current_user)):
         professions = await professions_data.from_queryset(Professions.all())
         return {
             "recomendations": professions,
-            "Based on your recent activity": professions,
+            "based on your recent activity": professions,
+            "real": False,
         }
     past_works_pydantic = await works_history.from_queryset(Works.all())
     work_history_list_of_dict = [item.dict() for item in past_works_pydantic]
@@ -253,10 +254,12 @@ async def get_real_recommendations(user: TokenData = Depends(get_current_user)):
         )
         return {
             "recommendations": professions,
-            "Based on your recent activity": professions,
+            "based on your recent activity": professions,
+            "real": True,
         }
     professions = await professions_data.from_queryset(Professions.all())
     return {
         "recomendations": professions,
-        "Based on your recent activity": professions,
+        "based on your recent activity": professions,
+        "real": False,
     }

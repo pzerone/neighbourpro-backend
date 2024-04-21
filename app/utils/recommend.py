@@ -48,5 +48,4 @@ def dict_to_pd_df(
         ],
         columns=cols,
     )
-    print(df)
     return df
