@@ -76,6 +76,10 @@ async def add_address(
     """
     if address is None:
         raise HTTPException(status_code=400, detail="Address not provided")
+    
+    address_check = await UserDetails.filter(user_id=user.id)
+    if len(address_check) > 0:
+        raise HTTPException(status_code=400, detail="Address already exists. Update if needed.")
 
     await UserDetails.create(
         user_id=user.id,
