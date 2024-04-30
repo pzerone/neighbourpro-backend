@@ -20,6 +20,7 @@ numpy = "^1.26.4"
 geopy = "^2.4.1"
 pandas = "^2.2.2"
 cython = "^3.0.10"
+setuptools = "^69.5.1"
 
 [build-system]
 requires = ["poetry-core"]

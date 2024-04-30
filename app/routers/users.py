@@ -40,7 +40,14 @@ class WorkerUpgrade(BaseModel):
 professions_data: TypeAlias = pydantic_model_creator(
     Professions,
     name="profession_data_output",
-    exclude_readonly=True,
+    include=(
+        "id",
+        "name",
+        "description",
+        "estimated_time_hours",
+
+        )
+    # exclude_readonly=True,
 )  # type: ignore
 
 works_history: TypeAlias = pydantic_model_creator(
