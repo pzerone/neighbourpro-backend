@@ -240,6 +240,7 @@ async def get_real_recommendations(user: TokenData = Depends(get_current_user)):
 
     booked_works = await Works.filter(booked_by_id=user.id, status="closed")
     if len(booked_works) < 1:
+        msg_logger(f"Recommend: user{user.id} does not have any booking history. count: {len(booked_works)}. skipping prediction", 20)
         # If the user does not have any past booking history, model will not generate recommendations
         # hence send all professions and let frontend show random professions
         professions = await professions_data.from_queryset(Professions.all())
@@ -270,6 +271,7 @@ async def get_real_recommendations(user: TokenData = Depends(get_current_user)):
             "based on your recent activity": professions,
         }
     professions = await professions_data.from_queryset(Professions.all())
+    msg_logger(f"Recommend: Algo prediction returned empty list. count: {len(top_n_recommendations)}. sending all", 20)
     return {
         "real": False,
         "recomendations": professions,
