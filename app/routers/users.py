@@ -237,15 +237,16 @@ async def get_recommendations():
 
 @router.get("/recommend/v2")
 async def get_real_recommendations(user: TokenData = Depends(get_current_user)):
-    try:
-        await Works.get(booked_by_id=user.id)
-    except DoesNotExist:  # If the current user does not have any previous booking history, return all professions
-        # and let frontend show random professions
+
+    booked_works = await Works.filter(booked_by_id=user.id, status="closed")
+    if len(booked_works) < 1:
+        # If the user does not have any past booking history, model will not generate recommendations
+        # hence send all professions and let frontend show random professions
         professions = await professions_data.from_queryset(Professions.all())
         return {
+            "real": False,
             "recomendations": professions,
             "based on your recent activity": professions,
-            "real": False,
         }
     past_works_pydantic = await works_history.from_queryset(Works.all())
     work_history_list_of_dict = [item.dict() for item in past_works_pydantic]
@@ -264,13 +265,13 @@ async def get_real_recommendations(user: TokenData = Depends(get_current_user)):
             Professions.filter(id__in=top_n_recommendations)
         )
         return {
+            "real": True,
             "recommendations": professions,
             "based on your recent activity": professions,
-            "real": True,
         }
     professions = await professions_data.from_queryset(Professions.all())
     return {
+        "real": False,
         "recomendations": professions,
         "based on your recent activity": professions,
-        "real": False,
     }
