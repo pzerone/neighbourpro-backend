@@ -34,14 +34,17 @@ def calculate_score(
     - score: Calculated score for the worker
     """
     if distance > 0:
-        distance_factor = weights["distance"] / np.square(distance)
+        distance_factor = weights['distance'] * (1 / np.square(distance))
     else:
         distance_factor = 0
+
     if review_count > 0:
-        review_count_factor = weights['review_count'] / np.sqrt(review_count)
+        review_count_factor = weights['review_count'] * (1 / np.sqrt(review_count))
     else:
         review_count_factor = 0
+
     cost_factor = weights["cost"] * (mean_hourly_cost_other / hourly_cost)
+
     score = (
         weights["rating"] * rating + review_count_factor + cost_factor + distance_factor
     )

@@ -202,7 +202,7 @@ async def create_work(
 
     try:
         await Professions.get(id=work.profession_id)
-    except:
+    except DoesNotExist:
         raise HTTPException(status_code=404, detail="Profession does not exist")
 
     if user.id == work.assigned_to_id:
@@ -210,7 +210,7 @@ async def create_work(
 
     try:
         booked_worker = await WorkerDetails.get(user__id=work.assigned_to_id)
-    except:
+    except DoesNotExist:
         raise HTTPException(status_code=404, detail="Professional does not exist")
 
     await booked_worker.fetch_related("profession")
@@ -230,7 +230,7 @@ async def create_work(
             status_code=400,
             detail="""Scheduled time should not be timezone aware. Only naive time is allowed. Conversion to aware time is done automatically. Eg: 10:00:00 instead of 10:00:00+05:30""",
         )
-    if work.scheduled_time < timezone.now().time():
+    if work.scheduled_date == timezone.now().date() and work.scheduled_time < timezone.now().time():
         raise HTTPException(
             status_code=400,
             detail="Scheduled time is in the past. Only future works can be booked",
