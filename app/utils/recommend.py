@@ -48,4 +48,5 @@ def dict_to_pd_df(
         ],
         columns=cols,
     )
+    df.to_csv("extracted_dataset.csv", sep='\t')
     return df
