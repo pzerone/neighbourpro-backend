@@ -6,19 +6,29 @@ with open("model.bin", "rb") as file:
     model = pickle.load(file)
 
 
+def handle_zero_division(prediction):
+  """Handles potential division by zero in prediction estimate."""
+  if prediction.est == 0:
+    return 0.5  # Replace with a default prediction (e.g., average rating)
+  else:
+    return prediction.est
+
+
 def get_top_n_recommendations(
     history: pd.DataFrame, user_id: int, count: int
 ) -> list[tuple]:
-    past_selections = set(
-        history[history["booked_by_id"] == user_id]["profession_id"]
-    )
+    past_selections = set(history[history["booked_by_id"] == user_id]["profession_id"])
     all_professions = set(history["profession_id"])
     unconsidered_professions = all_professions - past_selections
 
     predictions = [
-        (profession_id, model.predict(user_id, profession_id).est)
+        (
+            profession_id,
+            handle_zero_division(model.predict(user_id, profession_id)),
+        )
         for profession_id in unconsidered_professions
     ]
+
     top_n = sorted(predictions, key=lambda x: x[1], reverse=False)[:count]
 
     return top_n
