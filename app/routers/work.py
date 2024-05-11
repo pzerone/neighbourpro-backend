@@ -9,9 +9,10 @@ from typing import TypeAlias
 from fastapi import APIRouter, HTTPException, Depends
 from fastapi.responses import JSONResponse
 from tortoise.contrib.pydantic.creator import pydantic_model_creator
-from tortoise.exceptions import DoesNotExist
+from tortoise.exceptions import DoesNotExist, OperationalError
 from tortoise.functions import Avg
 from tortoise import timezone
+from tortoise.transactions import in_transaction
 from app.database.models import (
     UserDetails,
     Users,
@@ -23,6 +24,7 @@ from app.database.models import (
 from app.dependencies import TokenData
 from app.routers.auth import get_current_user
 from app.utils.score import sort_workers_by_score
+from app.utils.logger import msg_logger
 
 professionals_data: TypeAlias = pydantic_model_creator(
     Users,
@@ -78,7 +80,7 @@ client_details: TypeAlias = pydantic_model_creator(
         "latitude",
         "longitude",
         "phone_number",
-    )
+    ),
 )  # type: ignore
 
 review_in: TypeAlias = pydantic_model_creator(
@@ -223,12 +225,14 @@ async def create_work(
             status_code=400,
             detail="""Scheduled time should not be timezone aware. Only naive time is allowed. Conversion to aware time is done automatically. Eg: 10:00:00 instead of 10:00:00+05:30""",
         )
-    if work.scheduled_date < timezone.now().date() or (work.scheduled_date == timezone.now().date() and work.scheduled_time < timezone.now().time()):
+    if work.scheduled_date < timezone.now().date() or (
+        work.scheduled_date == timezone.now().date()
+        and work.scheduled_time < timezone.now().time()
+    ):
         raise HTTPException(
             status_code=400,
             detail="Scheduled time is in the past. Only future works can be booked",
         )
-
 
     estimated_cost = (
         booked_worker.hourly_rate * booked_worker.profession.estimated_time_hours
@@ -628,7 +632,6 @@ async def review_work(
     - work_id
     - review
     """
-    # TODO: update the worker's average rating field
     if len(review.review) > 500:
         raise HTTPException(
             status_code=400,
@@ -664,14 +667,33 @@ async def review_work(
             detail="Work is already reviewed. Only works that are not reviewed can be reviewed",
         )
 
-    await Reviews.create(
-        **review.dict(exclude_unset=True),
-        user_id=user.id,
-        work_id=work_id,
-        worker_id=work.assigned_to_id,
-        created_at=timezone.now(),
-        modified_at=timezone.now(),
-    )
+    existing_reviews = await Reviews.filter(worker_id=work.assigned_to_id)
+    reviews_count = len(existing_reviews) + 1
+    reviews_sum = sum([review.rating for review in existing_reviews]) + review.rating
+    new_avg_rating = reviews_sum / reviews_count
+
+    try:
+        async with in_transaction() as conn:
+            await Reviews.create(
+                using_db=conn,
+                **review.dict(exclude_unset=True),
+                user_id=user.id,
+                work_id=work_id,
+                worker_id=work.assigned_to_id,
+                created_at=timezone.now(),
+                modified_at=timezone.now(),
+            )
+            await WorkerDetails.filter(user_id=work.assigned_to_id).using_db(
+                conn
+            ).update(avg_rating=new_avg_rating)
+    except OperationalError as e:
+        msg_logger(
+            f"Failed to review work. Tried new average rating: {new_avg_rating}", 40
+        )
+        raise HTTPException(status_code=500, detail="Failed to review work")
+
+    msg_logger(f"Work reviewed sucessfully. New Average Rating: {new_avg_rating}", 20)
+
     return JSONResponse(
         content={"detail": "Work reviewed sucessfully"}, status_code=200
     )
