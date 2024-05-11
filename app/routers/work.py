@@ -230,11 +230,12 @@ async def create_work(
             status_code=400,
             detail="""Scheduled time should not be timezone aware. Only naive time is allowed. Conversion to aware time is done automatically. Eg: 10:00:00 instead of 10:00:00+05:30""",
         )
-    if work.scheduled_date == timezone.now().date() and work.scheduled_time < timezone.now().time():
+    if work.scheduled_date < timezone.now().date() or (work.scheduled_date == timezone.now().date() and work.scheduled_time < timezone.now().time()):
         raise HTTPException(
             status_code=400,
             detail="Scheduled time is in the past. Only future works can be booked",
         )
+
 
     estimated_cost = (
         booked_worker.hourly_rate * booked_worker.profession.estimated_time_hours
