@@ -10,7 +10,7 @@ def get_top_n_recommendations(
     history: pd.DataFrame, user_id: int, count: int
 ) -> list[tuple]:
     past_selections = set(
-        history[history["booked_by_id"] == user_id]["profession_id"]
+        history[history["user_id"] == user_id]["profession_id"]
     )
     all_professions = set(history["profession_id"])
     unconsidered_professions = all_professions - past_selections
@@ -28,7 +28,7 @@ def have_booked(user, profession, history: list):
     return (
         1
         if any(
-            record["booked_by_id"] == user and record["profession_id"] == profession
+            record["user_id"] == user and record["profession_id"] == profession
             for record in history
         )
         else 0
