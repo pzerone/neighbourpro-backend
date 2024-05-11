@@ -38,7 +38,7 @@ def have_booked(user, profession, history: list):
 def dict_to_pd_df(
     history: list, unique_profession_ids: list, unique_user_ids: list
 ) -> pd.DataFrame:
-    cols = ["booked_by_id", "profession_id", "booked_or_not"]
+    cols = ["user_id", "profession_id", "booked_or_not"]
     df = pd.DataFrame(
         [
             [user_id, profession_id, have_booked(user_id, profession_id, history)]
@@ -48,5 +48,5 @@ def dict_to_pd_df(
         ],
         columns=cols,
     )
-    df.to_csv("extracted_dataset.csv", sep='\t')
+    df.to_csv("extracted_dataset.csv", index=False)
     return df

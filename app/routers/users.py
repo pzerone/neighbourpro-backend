@@ -247,7 +247,6 @@ async def get_real_recommendations(user: TokenData = Depends(get_current_user)):
         return {
             "real": False,
             "recomendations": professions,
-            "based on your recent activity": professions,
         }
     past_works_pydantic = await works_history.from_queryset(Works.all())
     work_history_list_of_dict = [item.dict() for item in past_works_pydantic]
@@ -268,12 +267,10 @@ async def get_real_recommendations(user: TokenData = Depends(get_current_user)):
         return {
             "real": True,
             "recommendations": professions,
-            "based on your recent activity": professions,
         }
     professions = await professions_data.from_queryset(Professions.all())
     msg_logger(f"Recommend: Algo prediction returned empty list. count: {len(top_n_recommendations)}. sending all", 20)
     return {
         "real": False,
         "recomendations": professions,
-        "based on your recent activity": professions,
     }
