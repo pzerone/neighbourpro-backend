@@ -72,20 +72,13 @@ work_details_out: TypeAlias = pydantic_model_creator(
 )  # type: ignore
 
 client_details: TypeAlias = pydantic_model_creator(
-    Users,
+    UserDetails,
     name="Client Details Data Output",
     include=(
-        "first_name",
-        "last_name",
-        "House_name",
-        "Street",
-        "City",
-        "State",
-        "Pincode",
-        "Latitude",
-        "Longitude",
+        "latitude",
+        "longitude",
         "phone_number",
-    ),
+    )
 )  # type: ignore
 
 review_in: TypeAlias = pydantic_model_creator(
@@ -411,7 +404,7 @@ async def reject_work(work_id: int, user: TokenData = Depends(get_current_user))
     )
 
 
-@router.get("/client-contact-details/{work_id}", response_model=client_details)
+@router.get("/client-contact-details/{work_id}")
 async def get_client_contact_details(
     work_id: int, user: TokenData = Depends(get_current_user)
 ):
@@ -453,8 +446,8 @@ async def get_client_contact_details(
             detail="Work is not in accepted state. Accept the work before getting client details",
         )
 
-    await work.fetch_related("booked_by")
-    return await client_details.from_tortoise_orm(work.booked_by)
+    tester = await UserDetails.get(user_id=work.booked_by_id)
+    return await client_details.from_tortoise_orm(tester)
 
 
 @router.post("/start-work/{work_id}")
